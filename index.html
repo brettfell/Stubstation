@@ -115,53 +115,79 @@
     </div>
 
     <script>
-        let idleTimer; // The 'Stopwatch'
+      let idleTimer;
 
-        function startKiosk() {
-            const curtain = document.getElementById('attract-screen');
-            curtain.style.opacity = '0';
-            setTimeout(() => {
-                curtain.style.display = 'none';
-                resetTimer(); // Start counting idle time
-            }, 500);
-        }
+// NEW: Function to load products from JSON
+async function loadProducts() {
+    try {
+        const response = await fetch('products.json');
+        const products = await response.json();
+        
+        const grid = document.querySelector('.grid');
+        grid.innerHTML = ''; // Clear the "Hard-coded" placeholder items
 
-        function showCurtain() {
-            const curtain = document.getElementById('attract-screen');
-            curtain.style.display = 'flex';
-            setTimeout(() => {
-                curtain.style.opacity = '1';
-            }, 10);
-        }
+        products.forEach(product => {
+            grid.innerHTML += `
+                <div class="product-card">
+                    <h2>${product.name}</h2>
+                    <span class="price">$${product.price}</span>
+                    <p>${product.description}</p>
+                    <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none;">Buy Now</button>
+                </div>
+            `;
+        });
+    } catch (error) {
+        console.error("Error loading products:", error);
+    }
+}
 
-        function resetTimer() {
-            clearTimeout(idleTimer);
-            // 60000 = 1 minute. Adjust this to match your needs!
-            idleTimer = setTimeout(showCurtain, 60000); 
-        }
+// THE REVEAL
+function startKiosk() {
+    const curtain = document.getElementById('attract-screen');
+    curtain.style.opacity = '0';
+    setTimeout(() => {
+        curtain.style.display = 'none';
+        resetTimer();
+    }, 500);
+}
 
-        // KNOWLEDGE: This tells the browser to reset the timer on ANY click
-        window.onclick = resetTimer;
+function showCurtain() {
+    const curtain = document.getElementById('attract-screen');
+    curtain.style.display = 'flex';
+    setTimeout(() => {
+        curtain.style.opacity = '1';
+    }, 10);
+}
 
-        // KNOWLEDGE: This listens specifically to Fully Kiosk hardware signals
-        function onScreensaverStop() {
-            showCurtain();
-        }
+function resetTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(showCurtain, 60000); 
+}
 
-        function buyProduct(name) {
-            const msg = "You chose " + name;
-            if (typeof fully !== "undefined") {
-                fully.textToSpeech(msg);
-            }
-            document.getElementById('alertMessage').innerText = msg;
-            document.getElementById('customAlert').style.display = 'block';
-            resetTimer(); // Also reset timer when a button is clicked
-        }
+window.onclick = resetTimer;
 
-        function closeAlert() {
-            document.getElementById('customAlert').style.display = 'none';
-            resetTimer(); // Reset timer when they close the alert
-        }
+function onScreensaverStop() {
+    showCurtain();
+}
+
+function buyProduct(name) {
+    const msg = "You chose " + name;
+    if (typeof fully !== "undefined") {
+        fully.textToSpeech(msg);
+    }
+    document.getElementById('alertMessage').innerText = msg;
+    document.getElementById('customAlert').style.display = 'block';
+    resetTimer();
+}
+
+function closeAlert() {
+    document.getElementById('customAlert').style.display = 'none';
+    resetTimer();
+}
+
+// KNOWLEDGE: Trigger the JSON load when the page opens
+window.onload = loadProducts;
+  
     </script>
 </body>
 </html>
