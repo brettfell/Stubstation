@@ -1,0 +1,14 @@
+[
+  {
+    "id": "stub_01",
+    "name": "Souvenir Ticket Stub",
+    "price": "5.00",
+    "description": "The original retro styled ticket."
+  },
+  {
+    "id": "case_01",
+    "name": "Ticket + Display Case",
+    "price": "35.00",
+    "description": "Protect your memory in a premium case."
+  }
+]
