@@ -1,14 +1,19 @@
 [
   {
-    "id": "stub_01",
+    "id": "TKT-001",
     "name": "Souvenir Ticket Stub",
     "price": "5.00",
-    "description": "The original retro styled ticket."
+    "image": "Ticket.png",
+    "type": "print_local",
+    "description": "Premium thermal printed souvenir."
   },
   {
-    "id": "case_01",
-    "name": "Ticket + Display Case",
-    "price": "35.00",
-    "description": "Protect your memory in a premium case."
+    "id": "BOX-042",
+    "name": "Ticket + Shadow Box",
+    "price": "45.00",
+    "image": "Shadowbox.png",
+    "type": "fulfillment",
+    "description": "Includes ticket and protective display case."
   }
 ]
+
