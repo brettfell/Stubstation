@@ -134,27 +134,32 @@
     <script>
       let idleTimer;
 
-// NEW: Function to load products from JSON
+// NEW: Function to load products from JSON with Image Support
 async function loadProducts() {
     try {
         const response = await fetch('products.json');
         const products = await response.json();
-        
+
         const grid = document.querySelector('.grid');
         grid.innerHTML = ''; // Clear the "Hard-coded" placeholder items
 
         products.forEach(product => {
-            grid.innerHTML += `
-                <div class="product-card">
-                    <h2>${product.name}</h2>
-                    <span class="price">$${product.price}</span>
-                    <p>${product.description}</p>
-                    <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none;">Buy Now</button>
-                </div>
+            // We create a div, then fill it with the image and product info
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            
+            card.innerHTML = `
+                <img src="${product.image}" alt="${product.name}" class="product-img">
+                <h2>${product.name}</h2>
+                <span class="price">$${product.price}</span>
+                <p style="margin: 10px 0; font-size: 0.9rem; color: #ccc;">${product.description}</p>
+                <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none; color:black; cursor:pointer;">Buy Now</button>
             `;
+            grid.appendChild(card);
         });
     } catch (error) {
         console.error("Error loading products:", error);
+        document.querySelector('.grid').innerHTML = "<p>Update pending... check back soon!</p>";
     }
 }
 
