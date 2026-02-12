@@ -84,6 +84,23 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
             z-index: 10001;
         }
+/* Container for the images inside the cards */
+.product-img {
+    width: 100%;
+    height: 200px;
+    object-fit: contain; /* This prevents the image from stretching */
+    background: #111;    /* Slight contrast from the black card */
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+/* Ensure the button stays at the bottom */
+.product-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
     </style>
 </head>
 <body>
