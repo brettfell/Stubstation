@@ -231,7 +231,28 @@ function closeAlert() {
 }
 
 // KNOWLEDGE: Trigger the JSON load when the page opens
-window.onload = loadProducts;
+// This runs the moment the page opens
+window.onload = async () => {
+    await loadConfig();   // 1. Get Venue/Artist info
+    await loadProducts(); // 2. Get Product/Price info
+};
+
+async function loadConfig() {
+    try {
+        const response = await fetch('config.json');
+        const configData = await response.json();
+        
+        // This updates the header you just gave IDs to
+        document.getElementById('display-venue').innerText = configData.venue_name;
+        document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
+        
+        // We save this globally so the printer can use it later
+        window.kioskConfig = configData; 
+    } catch (error) {
+        console.error("Could not load config.json", error);
+    }
+}
+
   
     </script>
 </body>
