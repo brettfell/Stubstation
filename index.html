@@ -321,6 +321,19 @@ window.onload = () => {
     loadConfig();
     loadProducts();
 };
+function resetTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+        // Clear all sensitive data before the page reloads
+        document.getElementById('rowInput').value = '';
+        document.getElementById('seatInput').value = '';
+        document.getElementById('shippingName').value = '';
+        document.getElementById('shippingAddress').value = '';
+        
+        console.log("Session timed out. Clearing data and returning to home.");
+        location.reload(); 
+    }, 60000); // 60 Seconds
+}
 
     </script>
 </body>
