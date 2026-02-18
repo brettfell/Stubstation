@@ -179,24 +179,52 @@
         <h2 id="alertMessage">Message goes here</h2>
         <button onclick="closeAlert()" style="background: #333; color: white; padding: 10px 20px;">Got it!</button>
     </div>
+<div id="orderModal">
+    <h2 id="modalTitle" style="color:orange; margin-top:0;">Ticket Details</h2>
+    
+    <input type="text" id="rowInput" class="modal-input" placeholder="Row (e.g., A)">
+    <input type="text" id="seatInput" class="modal-input" placeholder="Seat (e.g., 12)">
+
+    <div id="shippingFields" style="display:none; border-top: 1px solid #444; margin-top:15px; padding-top:15px;">
+        <h3 style="font-size:1rem; margin-bottom:10px;">Shipping for Display Case:</h3>
+        <input type="text" id="shippingName" class="modal-input" placeholder="Full Name">
+        <input type="text" id="shippingAddress" class="modal-input" placeholder="Street, City, Zip">
+    </div>
+
+    <button onclick="processOrder()" style="width:100%; background:orange; color:black; padding:18px; margin-top:20px; font-weight:bold; border-radius:10px; border:none; font-size:1.3rem;">CONFIRM & PAY</button>
+    <button onclick="closeModal()" style="background:transparent; color:#888; border:none; margin-top:10px; width:100%; cursor:pointer;">Cancel</button>
+</div>
 
     <script>
       let idleTimer;
+let allProducts = []; // To store the products from JSON
+let currentOrder = {}; // To store what the user clicked
 
-// NEW: Function to load products from JSON with Image Support
+// 1. Load Venue Data
+async function loadConfig() {
+    try {
+        const response = await fetch('config.json');
+        const configData = await response.json();
+        document.getElementById('display-venue').innerText = configData.venue_name;
+        document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
+        window.kioskConfig = configData; 
+    } catch (error) {
+        console.error("Could not load config.json", error);
+    }
+}
+
+// 2. Load Products
 async function loadProducts() {
     try {
         const response = await fetch('products.json');
-        const products = await response.json();
+        allProducts = await response.json(); // Save to our global variable
 
         const grid = document.querySelector('.grid');
-        grid.innerHTML = ''; // Clear the "Hard-coded" placeholder items
+        grid.innerHTML = ''; 
 
-        products.forEach(product => {
-            // We create a div, then fill it with the image and product info
+        allProducts.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card';
-            
             card.innerHTML = `
                 <img src="${product.image}" alt="${product.name}" class="product-img">
                 <h2>${product.name}</h2>
@@ -208,26 +236,59 @@ async function loadProducts() {
         });
     } catch (error) {
         console.error("Error loading products:", error);
-        document.querySelector('.grid').innerHTML = "<p>Update pending... check back soon!</p>";
     }
 }
 
-// THE REVEAL
+// 3. User clicks "Buy Now"
+function buyProduct(name) {
+    const product = allProducts.find(p => p.name === name);
+    if (!product) return;
+    
+    currentOrder = product;
+
+    if (typeof fully !== "undefined") {
+        fully.textToSpeech(`Excellent. Please enter your seat details for the ${name}.`);
+    }
+
+    // Toggle shipping fields
+    document.getElementById('shippingFields').style.display = (product.price >= 35) ? 'block' : 'none';
+    document.getElementById('modalTitle').innerText = (product.price >= 35) ? "Order & Shipping" : "Ticket Details";
+    
+    document.getElementById('orderModal').style.display = 'block';
+    resetTimer();
+}
+
+// 4. Close Modal
+function closeModal() {
+    document.getElementById('orderModal').style.display = 'none';
+    resetTimer();
+}
+
+// 5. Place-holder for "Confirm & Pay"
+function processOrder() {
+    const row = document.getElementById('rowInput').value;
+    const seat = document.getElementById('seatInput').value;
+    
+    if(!row || !seat) {
+        alert("Please enter a row and seat!");
+        return;
+    }
+
+    alert(`Ready to pay for ${currentOrder.name} at Row ${row}, Seat ${seat}`);
+    // Next week: This is where we trigger Square and the Lemur-X
+    closeModal();
+}
+
+// Kiosk Management
 function startKiosk() {
     const curtain = document.getElementById('attract-screen');
     curtain.style.opacity = '0';
-    setTimeout(() => {
-        curtain.style.display = 'none';
-        resetTimer();
-    }, 500);
+    setTimeout(() => { curtain.style.display = 'none'; resetTimer(); }, 500);
 }
 
 function showCurtain() {
-    const curtain = document.getElementById('attract-screen');
-    curtain.style.display = 'flex';
-    setTimeout(() => {
-        curtain.style.opacity = '1';
-    }, 10);
+    document.getElementById('attract-screen').style.display = 'flex';
+    setTimeout(() => { document.getElementById('attract-screen').style.opacity = '1'; }, 10);
 }
 
 function resetTimer() {
@@ -237,66 +298,11 @@ function resetTimer() {
 
 window.onclick = resetTimer;
 
-function onScreensaverStop() {
-    showCurtain();
-}
-
-function buyProduct(name) {
-    // Find the price from our loaded products
-    const product = allProducts.find(p => p.name === name);
-    currentOrder = product;
-
-    // 1. Voice Feedback
-    if (typeof fully !== "undefined") {
-        fully.textToSpeech("Excellent. Please enter your seat details.");
-    }
-
-    // 2. Show/Hide Shipping based on price
-    const shippingSection = document.getElementById('shippingFields');
-    if (product.price >= 35) {
-        shippingSection.style.display = 'block';
-    } else {
-        shippingSection.style.display = 'none';
-    }
-
-    // 3. Open the Modal
-    document.getElementById('orderModal').style.display = 'block';
-}
-
-    document.getElementById('alertMessage').innerText = msg;
-    document.getElementById('customAlert').style.display = 'block';
-    resetTimer();
-}
-
-function closeAlert() {
-    document.getElementById('customAlert').style.display = 'none';
-    resetTimer();
-}
-
-// KNOWLEDGE: Trigger the JSON load when the page opens
-// This runs the moment the page opens
 window.onload = async () => {
-    await loadConfig();   // 1. Get Venue/Artist info
-    await loadProducts(); // 2. Get Product/Price info
+    await loadConfig();
+    await loadProducts();
 };
 
-async function loadConfig() {
-    try {
-        const response = await fetch('config.json');
-        const configData = await response.json();
-        
-        // This updates the header you just gave IDs to
-        document.getElementById('display-venue').innerText = configData.venue_name;
-        document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
-        
-        // We save this globally so the printer can use it later
-        window.kioskConfig = configData; 
-    } catch (error) {
-        console.error("Could not load config.json", error);
-    }
-}
-
-  
     </script>
 </body>
 </html>
