@@ -242,10 +242,27 @@ function onScreensaverStop() {
 }
 
 function buyProduct(name) {
-    const msg = "You chose " + name;
+    // Find the price from our loaded products
+    const product = allProducts.find(p => p.name === name);
+    currentOrder = product;
+
+    // 1. Voice Feedback
     if (typeof fully !== "undefined") {
-        fully.textToSpeech(msg);
+        fully.textToSpeech("Excellent. Please enter your seat details.");
     }
+
+    // 2. Show/Hide Shipping based on price
+    const shippingSection = document.getElementById('shippingFields');
+    if (product.price >= 35) {
+        shippingSection.style.display = 'block';
+    } else {
+        shippingSection.style.display = 'none';
+    }
+
+    // 3. Open the Modal
+    document.getElementById('orderModal').style.display = 'block';
+}
+
     document.getElementById('alertMessage').innerText = msg;
     document.getElementById('customAlert').style.display = 'block';
     resetTimer();
