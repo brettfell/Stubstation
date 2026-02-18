@@ -181,122 +181,117 @@
     </div>
 
     <script>
-      let idleTimer;
+let idleTimer;
+let allProducts = [];
+let currentOrder = {};
 
-// NEW: Function to load products from JSON with Image Support
+// 1. Bulletproof Config Loader
+async function loadConfig() {
+    console.log("Attempting to load config...");
+    try {
+        const response = await fetch('config.json');
+        if (!response.ok) throw new Error('File not found');
+        const configData = await response.json();
+        
+        document.getElementById('display-venue').innerText = configData.venue_name;
+        document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
+        window.kioskConfig = configData; 
+    } catch (error) {
+        console.warn("Config load failed, using defaults:", error);
+        // Fallback so the screen isn't empty
+        document.getElementById('display-venue').innerText = "StubStation";
+        document.getElementById('display-event').innerText = "Bring Home The Original Souvenir";
+    }
+}
+
+// 2. Bulletproof Product Loader
 async function loadProducts() {
+    console.log("Attempting to load products...");
     try {
         const response = await fetch('products.json');
-        const products = await response.json();
-
+        if (!response.ok) throw new Error('File not found');
+        allProducts = await response.json();
+        
         const grid = document.querySelector('.grid');
-        grid.innerHTML = ''; // Clear the "Hard-coded" placeholder items
+        grid.innerHTML = ''; 
 
-        products.forEach(product => {
-            // We create a div, then fill it with the image and product info
+        allProducts.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card';
-
             card.innerHTML = `
-                <img src="${product.image}" alt="${product.name}" class="product-img">
+                <img src="${product.image}" class="product-img" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
                 <h2>${product.name}</h2>
                 <span class="price">$${product.price}</span>
-                <p style="margin: 10px 0; font-size: 0.9rem; color: #ccc;">${product.description}</p>
+                <p style="color:#ccc; font-size:0.9rem;">${product.description}</p>
                 <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none; color:black; cursor:pointer;">Buy Now</button>
             `;
             grid.appendChild(card);
         });
     } catch (error) {
-        console.error("Error loading products:", error);
-        document.querySelector('.grid').innerHTML = "<p>Update pending... check back soon!</p>";
+        console.error("Product load failed:", error);
+        // Add a manual button if JSON fails so you can at least test the popup
+        document.querySelector('.grid').innerHTML = `<button onclick="buyProduct('Test Item', 5)" style="padding:20px; background:orange;">JSON Load Error - Click for Test Popup</button>`;
     }
 }
 
-// THE REVEAL
-function startKiosk() {
-    const curtain = document.getElementById('attract-screen');
-    curtain.style.opacity = '0';
-    setTimeout(() => {
-        curtain.style.display = 'none';
-        resetTimer();
-    }, 500);
-}
-
-function showCurtain() {
-    const curtain = document.getElementById('attract-screen');
-    curtain.style.display = 'flex';
-    setTimeout(() => {
-        curtain.style.opacity = '1';
-    }, 10);
-}
-
-function resetTimer() {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(showCurtain, 60000); 
-}
-
-window.onclick = resetTimer;
-
-function onScreensaverStop() {
-    showCurtain();
-}
-
+// 3. User selects a product
 function buyProduct(name) {
-    // Find the price from our loaded products
-    const product = allProducts.find(p => p.name === name);
+    console.log("Product clicked:", name);
+    // Find the product, or use a default if we're in test mode
+    const product = allProducts.find(p => p.name === name) || {name: name, price: 5};
     currentOrder = product;
 
-    // 1. Voice Feedback
     if (typeof fully !== "undefined") {
         fully.textToSpeech("Excellent. Please enter your seat details.");
     }
 
-    // 2. Show/Hide Shipping based on price
-    const shippingSection = document.getElementById('shippingFields');
-    if (product.price >= 35) {
-        shippingSection.style.display = 'block';
-    } else {
-        shippingSection.style.display = 'none';
-    }
-
-    // 3. Open the Modal
+    document.getElementById('shippingFields').style.display = (product.price >= 35) ? 'block' : 'none';
+    document.getElementById('modalTitle').innerText = (product.price >= 35) ? "Order & Shipping" : "Ticket Details";
     document.getElementById('orderModal').style.display = 'block';
 }
 
-    document.getElementById('alertMessage').innerText = msg;
-    document.getElementById('customAlert').style.display = 'block';
+// 4. Handle Order Submission
+function processOrder() {
+    const row = document.getElementById('rowInput').value;
+    const seat = document.getElementById('seatInput').value;
+    if(!row || !seat) return alert("Please enter Row and Seat");
+    
+    document.getElementById('orderModal').style.display = 'none';
+    document.getElementById('printingScreen').style.display = 'flex';
+
+    setTimeout(() => {
+        document.getElementById('printingScreen').style.display = 'none';
+        location.reload(); 
+    }, 4000);
+}
+
+function closeModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
+
+// Kiosk Management
+function startKiosk() {
+    console.log("Start Button Pushed");
+    const curtain = document.getElementById('attract-screen');
+    curtain.style.opacity = '0';
+    setTimeout(() => { 
+        curtain.style.display = 'none'; 
+    }, 500);
     resetTimer();
 }
 
-function closeAlert() {
-    document.getElementById('customAlert').style.display = 'none';
-    resetTimer();
+function resetTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { location.reload(); }, 60000); 
 }
 
-// KNOWLEDGE: Trigger the JSON load when the page opens
-// This runs the moment the page opens
-window.onload = async () => {
-    await loadConfig();   // 1. Get Venue/Artist info
-    await loadProducts(); // 2. Get Product/Price info
+// INIT (The critical part)
+window.onload = () => {
+    console.log("Page Loaded");
+    document.body.style.border = "5px solid green"; // Changed to Green to show success!
+    loadConfig();
+    loadProducts();
 };
-
-async function loadConfig() {
-    try {
-        const response = await fetch('config.json');
-        const configData = await response.json();
-
-        // This updates the header you just gave IDs to
-        document.getElementById('display-venue').innerText = configData.venue_name;
-        document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
-
-        // We save this globally so the printer can use it later
-        window.kioskConfig = configData; 
-    } catch (error) {
-        console.error("Could not load config.json", error);
-    }
-}
-
-document.body.style.border = "5px solid red"; 
 
     </script>
 </body>
