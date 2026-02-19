@@ -263,34 +263,29 @@ function buyProduct(name) {
 
 // 4. THE MAIN PROCESS FUNCTION
 function processOrder() {
-    alert("Function started! Building Square Intent...");
+    // 1. Convert amount to cents (Square needs whole numbers)
+    const amountCents = Math.round(currentOrder.total * 100);
+    
+    // 2. This MUST match your Square Dashboard exactly
+    const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
-    const row = document.getElementById('rowInput').value;
-    const seat = document.getElementById('seatInput').value;
-
-    if(!row || !seat) return alert("Please enter Row and Seat");
-
-    const appId = window.kioskConfig.square_app_id;
-    const locationId = window.kioskConfig.square_location_id;
-    const callbackUrl = window.location.origin + window.location.pathname;
-    const amountCents = currentOrder.price * 100;
-
+    // 3. Build the simplified intent
     const squareIntent = 
         `intent:#Intent;` +
         `action=com.squareup.pos.action.CHARGE;` +
         `package=com.squareup;` +
         `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
-        `S.com.squareup.pos.CLIENT_ID=${appId};` +
+        `S.com.squareup.pos.CLIENT_ID=${config.SQUARE_APP_ID};` +
         `S.com.squareup.pos.API_VERSION=v1.3;` +
         `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` +
         `S.com.squareup.pos.CURRENCY_CODE=USD;` +
-        `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CARD_ON_FILE,com.squareup.pos.TENDER_CASH;` +
-        `S.com.squareup.pos.LOCATION_ID=${locationId};` +
-        `S.com.squareup.pos.NOTE=${encodeURIComponent(currentOrder.name + " | Row:" + row + " Seat:" + seat)};` +
+        `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
+        `S.com.squareup.pos.LOCATION_ID=${config.SQUARE_LOCATION_ID};` + // Added explicitly
+        `l.launchFlags=0;` + 
         `end`;
 
-    alert("Jumping to Square POS now!");
-    window.location.href = squareIntent;
+    console.log("Starting Transaction for: " + amountCents + " cents");
+    window.location.replace(squareIntent);
 }
 
 function closeModal() {
