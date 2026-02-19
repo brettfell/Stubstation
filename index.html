@@ -215,36 +215,26 @@ let idleTimer;
 let allProducts = [];
 let currentOrder = {};
 
-// 1. Bulletproof Config Loader
+// 1. Config Loader
 async function loadConfig() {
-    console.log("Attempting to load config...");
     try {
         const response = await fetch('config.json');
-        if (!response.ok) throw new Error('File not found');
         const configData = await response.json();
-        
         document.getElementById('display-venue').innerText = configData.venue_name;
         document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
         window.kioskConfig = configData; 
     } catch (error) {
-        console.warn("Config load failed, using defaults:", error);
-        // Fallback so the screen isn't empty
-        document.getElementById('display-venue').innerText = "StubStation";
-        document.getElementById('display-event').innerText = "Bring Home The Original Souvenir";
+        console.warn("Config load failed", error);
     }
 }
 
-// 2. Bulletproof Product Loader
+// 2. Product Loader
 async function loadProducts() {
-    console.log("Attempting to load products...");
     try {
         const response = await fetch('products.json');
-        if (!response.ok) throw new Error('File not found');
         allProducts = await response.json();
-        
         const grid = document.querySelector('.grid');
         grid.innerHTML = ''; 
-
         allProducts.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card';
@@ -258,23 +248,28 @@ async function loadProducts() {
             grid.appendChild(card);
         });
     } catch (error) {
-        console.error("Product load failed:", error);
-        // Add a manual button if JSON fails so you can at least test the popup
-        document.querySelector('.grid').innerHTML = `<button onclick="buyProduct('Test Item', 5)" style="padding:20px; background:orange;">JSON Load Error - Click for Test Popup</button>`;
+        console.error("Product load failed", error);
     }
 }
 
 // 3. User selects a product
+function buyProduct(name) {
+    currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
+    document.getElementById('modalTitle').innerText = name;
+    document.getElementById('orderModal').style.display = 'block';
+    // Show shipping fields only for the expensive item
+    document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
+}
+
+// 4. THE MAIN PROCESS FUNCTION
 function processOrder() {
-    // DIAGNOSTIC 1: Checks if the button is even connected
-    alert("Function started! Row: " + document.getElementById('rowInput').value);
+    alert("Function started! Building Square Intent...");
 
     const row = document.getElementById('rowInput').value;
     const seat = document.getElementById('seatInput').value;
-    
+
     if(!row || !seat) return alert("Please enter Row and Seat");
 
-    // Pull IDs from config
     const appId = window.kioskConfig.square_app_id;
     const locationId = window.kioskConfig.square_location_id;
     const callbackUrl = window.location.origin + window.location.pathname;
@@ -294,16 +289,15 @@ function processOrder() {
         `S.com.squareup.pos.NOTE=${encodeURIComponent(currentOrder.name + " | Row:" + row + " Seat:" + seat)};` +
         `end`;
 
-    // DIAGNOSTIC 2: Checks if the code successfully built the Square link
-    alert("Jumping to Square now...");
-
+    alert("Jumping to Square POS now!");
     window.location.href = squareIntent;
 }
-
 
 function closeModal() {
     document.getElementById('orderModal').style.display = 'none';
 }
+// ... rest of your startKiosk and resetTimer functions ...
+
 
 // Kiosk Management
 function startKiosk() {
