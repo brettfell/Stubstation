@@ -264,39 +264,21 @@ async function loadProducts() {
 }
 
 // 3. User selects a product
-function buyProduct(name) {
-    console.log("Product clicked:", name);
-    // Find the product, or use a default if we're in test mode
-    const product = allProducts.find(p => p.name === name) || {name: name, price: 5};
-    currentOrder = product;
-
-    if (typeof fully !== "undefined") {
-        fully.textToSpeech("Excellent. Please enter your seat details.");
-    }
-
-    document.getElementById('shippingFields').style.display = (product.price >= 35) ? 'block' : 'none';
-    document.getElementById('modalTitle').innerText = (product.price >= 35) ? "Order & Shipping" : "Ticket Details";
-    document.getElementById('orderModal').style.display = 'block';
-}
-
-// 4. Handle Order Submission
 function processOrder() {
+    // DIAGNOSTIC 1: Checks if the button is even connected
+    alert("Function started! Row: " + document.getElementById('rowInput').value);
+
     const row = document.getElementById('rowInput').value;
     const seat = document.getElementById('seatInput').value;
     
-    if(!row || !seat) {
-        if (typeof fully !== "undefined") fully.textToSpeech("Please enter your row and seat number.");
-        return;
-    }
+    if(!row || !seat) return alert("Please enter Row and Seat");
 
-    // 1. Pull IDs from the config we loaded at start
+    // Pull IDs from config
     const appId = window.kioskConfig.square_app_id;
     const locationId = window.kioskConfig.square_location_id;
     const callbackUrl = window.location.origin + window.location.pathname;
     const amountCents = currentOrder.price * 100;
 
-    // 2. Build the "Intent" (The handshake with the Square App)
-    // Adding TENDER_CASH so you can test for free!
     const squareIntent = 
         `intent:#Intent;` +
         `action=com.squareup.pos.action.CHARGE;` +
@@ -311,10 +293,9 @@ function processOrder() {
         `S.com.squareup.pos.NOTE=${encodeURIComponent(currentOrder.name + " | Row:" + row + " Seat:" + seat)};` +
         `end`;
 
-    // 3. Save the seat info so it's there when we return from Square
-    sessionStorage.setItem('temp_seat_data', JSON.stringify({row, seat}));
+    // DIAGNOSTIC 2: Checks if the code successfully built the Square link
+    alert("Jumping to Square now...");
 
-    console.log("Flipping to Square POS...");
     window.location.href = squareIntent;
 }
 
