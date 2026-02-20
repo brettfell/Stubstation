@@ -210,19 +210,17 @@
     </div>
 
     <script>
-alert("Script has loaded successfully!");
 let idleTimer;
 let allProducts = [];
 let currentOrder = {};
 
-// 1. Config Loader
+// 1. Config Loader (Fixed to ensure variable is available globally)
 async function loadConfig() {
     try {
         const response = await fetch('config.json');
-        const configData = await response.json();
-        document.getElementById('display-venue').innerText = configData.venue_name;
-        document.getElementById('display-event').innerText = `${configData.artist_name} - ${configData.door_time}`;
-        window.kioskConfig = configData; 
+        window.kioskConfig = await response.json(); // Data is now in window.kioskConfig
+        document.getElementById('display-venue').innerText = window.kioskConfig.venue_name;
+        document.getElementById('display-event').innerText = `${window.kioskConfig.artist_name} - ${window.kioskConfig.door_time}`;
     } catch (error) {
         console.warn("Config load failed", error);
     }
@@ -252,83 +250,59 @@ async function loadProducts() {
     }
 }
 
-// 3. User selects a product
 function buyProduct(name) {
     currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
     document.getElementById('modalTitle').innerText = name;
     document.getElementById('orderModal').style.display = 'block';
-    // Show shipping fields only for the expensive item
     document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
 }
 
-// 4. THE MAIN PROCESS FUNCTION
+// 3. THE FIXED PROCESS FUNCTION
 function processOrder() {
-    // 1. Convert amount to cents (Square needs whole numbers)
-    const amountCents = Math.round(currentOrder.total * 100);
+    // FIX 1: Use window.kioskConfig instead of 'config'
+    const appId = window.kioskConfig.SQUARE_APP_ID;
+    const locationId = window.kioskConfig.SQUARE_LOCATION_ID;
     
-    // 2. This MUST match your Square Dashboard exactly
+    // FIX 2: Correctly calculate cents
+    const amountCents = Math.round(currentOrder.price * 100);
     const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
-    // 3. Build the simplified intent
+    // Diagnostic Alert
+    alert("Diagnostic: Sending " + amountCents + " cents to Square App ID: " + appId);
+
     const squareIntent = 
         `intent:#Intent;` +
         `action=com.squareup.pos.action.CHARGE;` +
         `package=com.squareup;` +
         `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
-        `S.com.squareup.pos.CLIENT_ID=${config.SQUARE_APP_ID};` +
+        `S.com.squareup.pos.CLIENT_ID=${appId};` +
         `S.com.squareup.pos.API_VERSION=v1.3;` +
         `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` +
         `S.com.squareup.pos.CURRENCY_CODE=USD;` +
         `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
-        `S.com.squareup.pos.LOCATION_ID=${config.SQUARE_LOCATION_ID};` + // Added explicitly
+        `S.com.squareup.pos.LOCATION_ID=${locationId};` +
         `l.launchFlags=0;` + 
         `end`;
 
-    console.log("Starting Transaction for: " + amountCents + " cents");
     window.location.replace(squareIntent);
 }
 
-function closeModal() {
-    document.getElementById('orderModal').style.display = 'none';
-}
-// ... rest of your startKiosk and resetTimer functions ...
+// 4. Initialization
+window.onload = () => {
+    loadConfig();
+    loadProducts();
+};
 
-
-// Kiosk Management
 function startKiosk() {
-    console.log("Start Button Pushed");
     const curtain = document.getElementById('attract-screen');
     curtain.style.opacity = '0';
-    setTimeout(() => { 
-        curtain.style.display = 'none'; 
-    }, 500);
+    setTimeout(() => { curtain.style.display = 'none'; }, 500);
     resetTimer();
 }
 
 function resetTimer() {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => { location.reload(); }, 60000); 
-}
-
-// INIT (The critical part)
-window.onload = () => {
-    console.log("Page Loaded");
-    document.body.style.border = "5px solid green"; // Changed to Green to show success!
-    loadConfig();
-    loadProducts();
-};
-function resetTimer() {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-        // Clear all sensitive data before the page reloads
-        document.getElementById('rowInput').value = '';
-        document.getElementById('seatInput').value = '';
-        document.getElementById('shippingName').value = '';
-        document.getElementById('shippingAddress').value = '';
-        
-        console.log("Session timed out. Clearing data and returning to home.");
-        location.reload(); 
-    }, 60000); // 60 Seconds
 }
 
     </script>
