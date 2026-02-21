@@ -259,16 +259,18 @@ function buyProduct(name) {
 
 // 3. THE FIXED PROCESS FUNCTION
 function processOrder() {
-    // FIX: Using lowercase to perfectly match your config.json file
-    const appId = window.kioskConfig.square_app_id; 
-    const locationId = window.kioskConfig.square_location_id;
+    // 1. Pull and Clean IDs (Crucial to prevent the "Bounce")
+    const appId = String(window.kioskConfig.square_app_id).trim();
+    const locId = String(window.kioskConfig.square_location_id).trim();
     
-    // Calculate cents
-    const amountCents = Math.round(currentOrder.price * 100);
+    // 2. Format Price (Square requires a whole number/Integer)
+    const amountCents = parseInt(Math.round(currentOrder.price * 100));
+    
+    // 3. Set the Return URL (Must match your Square Dashboard exactly)
     const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
-    // This alert will now show your actual App ID instead of "undefined"
-    alert("Diagnostic: Sending " + amountCents + " cents to Square App ID: " + appId);
+    // Final check before the flip
+    console.log("Processing " + amountCents + " cents for ID: " + appId);
 
     const squareIntent = 
         `intent:#Intent;` +
@@ -277,13 +279,14 @@ function processOrder() {
         `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
         `S.com.squareup.pos.CLIENT_ID=${appId};` +
         `S.com.squareup.pos.API_VERSION=v1.3;` +
-        `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` +
+        `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
         `S.com.squareup.pos.CURRENCY_CODE=USD;` +
         `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
-        `S.com.squareup.pos.LOCATION_ID=${locationId};` +
+        `S.com.squareup.pos.LOCATION_ID=${locId};` +
         `l.launchFlags=0;` + 
         `end`;
 
+    // .replace is best for Chrome to prevent "back-button loops"
     window.location.replace(squareIntent);
 }
 
