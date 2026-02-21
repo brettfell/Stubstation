@@ -259,15 +259,15 @@ function buyProduct(name) {
 
 // 3. THE FIXED PROCESS FUNCTION
 function processOrder() {
-    // FIX 1: Use window.kioskConfig instead of 'config'
-    const appId = window.kioskConfig.SQUARE_APP_ID;
-    const locationId = window.kioskConfig.SQUARE_LOCATION_ID;
+    // FIX: Using lowercase to perfectly match your config.json file
+    const appId = window.kioskConfig.square_app_id; 
+    const locationId = window.kioskConfig.square_location_id;
     
-    // FIX 2: Correctly calculate cents
+    // Calculate cents
     const amountCents = Math.round(currentOrder.price * 100);
     const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
-    // Diagnostic Alert
+    // This alert will now show your actual App ID instead of "undefined"
     alert("Diagnostic: Sending " + amountCents + " cents to Square App ID: " + appId);
 
     const squareIntent = 
