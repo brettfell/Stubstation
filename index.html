@@ -148,6 +148,23 @@
         .spinner {
             animation: spin 1s linear infinite;
         }
+        #customAlert {
+            display: none; 
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a1a;
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid red;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            z-index: 10005;
+            width: 80%;
+            max-width: 400px;
+        }
+
     </style>
 </head>
 <body>
@@ -176,6 +193,11 @@
             <span class="price">$35.00</span>
             <button onclick="buyProduct('Get your ticket stub and order a display case')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none;">Buy Now</button>
         </div>
+    </div>
+    
+    <div id="customAlert">
+        <h2 id="alertMessage" style="color: white; margin-top: 0;">Message goes here</h2>
+        <button onclick="closeAlert()" style="background: red; color: white; padding: 15px 30px; font-weight: bold; border: none; border-radius: 10px; font-size: 1.2rem; cursor: pointer; margin-top: 20px;">Got it!</button>
     </div>
 
     <div id="orderModal">
