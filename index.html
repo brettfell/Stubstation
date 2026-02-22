@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StubStation</title>
     <style>
         body {
             background: #000;
@@ -14,6 +15,16 @@
             justify-content: center;
             min-height: 100vh;
             overflow-y: auto; 
+        }
+
+        /* Version Marker */
+        #version-marker {
+            position: fixed;
+            top: 5px;
+            left: 5px;
+            color: #444;
+            font-size: 12px;
+            z-index: 99999;
         }
 
         #attract-screen {
@@ -62,6 +73,9 @@
             border-radius: 20px;
             text-align: center;
             border: 3px solid orange;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .price {
@@ -71,103 +85,85 @@
             margin-bottom: 10px;
         }
 
-        #customAlert {
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: contain; 
+            background: #111;    
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .main-header {
+            text-align: center;
+            margin: 40px 0; 
+        }
+
+        .brand-name {
+            font-size: 4rem; 
+            font-weight: 900;
+            color: orange;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .tagline {
+            font-size: 1.5rem; 
+            color: #ccc;
+            margin-top: 5px;
+            font-weight: 300;
+        }
+
+        #orderModal {
             display: none; 
             position: fixed;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            color: black;
-            padding: 40px;
+            background: #1a1a1a;
+            color: white;
+            padding: 30px;
             border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            z-index: 10001;
+            border: 3px solid orange;
+            z-index: 10002;
+            width: 85%;
+            max-width: 450px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
-/* Container for the images inside the cards */
-.product-img {
-    width: 100%;
-    height: 200px;
-    object-fit: contain; /* This prevents the image from stretching */
-    background: #111;    /* Slight contrast from the black card */
-    border-radius: 8px;
-    margin-bottom: 15px;
-}
 
-/* Ensure the button stays at the bottom */
-.product-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-.main-header {
-    text-align: center;
-    margin: 40px 0; /* Adds space above and below the header */
-}
+        .modal-input {
+            width: 90%;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 1.1rem;
+            background: #333;
+            color: white;
+        }
 
-.brand-name {
-    font-size: 4rem; /* Big and bold */
-    font-weight: 900;
-    color: orange;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-.tagline {
-    font-size: 1.5rem; /* Smaller, supporting text */
-    color: #ccc;
-    margin-top: 5px;
-    font-weight: 300;
-}
-#orderModal {
-    display: none; 
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: #1a1a1a;
-    color: white;
-    padding: 30px;
-    border-radius: 20px;
-    border: 3px solid orange;
-    z-index: 10002;
-    width: 85%;
-    max-width: 450px;
-    box-shadow: 0 0 50px rgba(0,0,0,0.9);
-}
-
-.modal-input {
-    width: 90%;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 8px;
-    border: none;
-    font-size: 1.1rem;
-    background: #333;
-    color: white;
-}
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.spinner {
-    animation: spin 1s linear infinite;
-}
-
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
 
+    <div id="version-marker">v2.1</div>
+
     <div id="attract-screen" onclick="startKiosk()">
-        <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;">
+        <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
         <button class="start-btn">TOUCH HERE TO GET YOUR RETRO STYLED TICKET</button>
     </div>
 
     <div class="main-header">
-    <div class="brand-name" id="display-venue">StubStation</div>
-    <div class="tagline" id="display-event">Bring Home The Original Souvenir</div>
-</div>
-
+        <div class="brand-name" id="display-venue">StubStation</div>
+        <div class="tagline" id="display-event">Bring Home The Original Souvenir</div>
+    </div>
 
     <div class="grid">
         <div class="product-card">
@@ -183,14 +179,9 @@
         </div>
     </div>
 
-    <div id="customAlert">
-        <h2 id="alertMessage">Message goes here</h2>
-        <button onclick="closeAlert()" style="background: #333; color: white; padding: 10px 20px;">Got it!</button>
-    </div>
-    
     <div id="orderModal">
         <h2 id="modalTitle" style="color:orange; margin-top:0;">Ticket Details</h2>
-        
+
         <input type="text" id="rowInput" class="modal-input" placeholder="Row (e.g., A)">
         <input type="text" id="seatInput" class="modal-input" placeholder="Seat (e.g., 12)">
 
@@ -206,135 +197,133 @@
 
     <div id="printingScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10003; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="color: orange; font-size: 3rem; text-align: center;">PRINTING YOUR<br>SOUVENIR...</h1>
-        <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid orange; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid orange; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px;"></div>
     </div>
 
     <script>
-// 0. THE BUG TRACKER: If anything breaks, this will tell us exactly why.
-window.onerror = function(message, source, lineno) {
-    alert("System Error: " + message + " (Line: " + lineno + ")");
-};
+        // 0. BUG TRACKER
+        window.onerror = function(message, source, lineno) {
+            alert("System Error: " + message + " (Line: " + lineno + ")");
+            return true;
+        };
 
-let idleTimer;
-let allProducts = [];
-let currentOrder = {};
+        let idleTimer;
+        let allProducts = [];
+        let currentOrder = {};
 
-// 1. Config Loader
-async function loadConfig() {
-    try {
-        const response = await fetch('config.json');
-        window.kioskConfig = await response.json(); 
-        document.getElementById('display-venue').innerText = window.kioskConfig.venue_name;
-        document.getElementById('display-event').innerText = `${window.kioskConfig.artist_name} - ${window.kioskConfig.door_time}`;
-    } catch (error) {
-        console.warn("Config load failed, using defaults");
-    }
-}
+        async function loadConfig() {
+            try {
+                const response = await fetch('config.json');
+                window.kioskConfig = await response.json(); 
+                document.getElementById('display-venue').innerText = window.kioskConfig.venue_name;
+                document.getElementById('display-event').innerText = `${window.kioskConfig.artist_name} - ${window.kioskConfig.door_time}`;
+            } catch (error) {
+                console.warn("Config load failed, using defaults");
+            }
+        }
 
-// 2. Product Loader
-async function loadProducts() {
-    try {
-        const response = await fetch('products.json');
-        allProducts = await response.json();
-        const grid = document.querySelector('.grid');
-        grid.innerHTML = ''; 
-        allProducts.forEach(product => {
-            const card = document.createElement('div');
-            card.className = 'product-card';
-            card.innerHTML = `
-                <img src="${product.image}" class="product-img" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
-                <h2>${product.name}</h2>
-                <span class="price">$${product.price}</span>
-                <p style="color:#ccc; font-size:0.9rem;">${product.description}</p>
-                <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none; color:black; cursor:pointer;">Buy Now</button>
-            `;
-            grid.appendChild(card);
-        });
-    } catch (error) {
-        console.warn("Product load failed, keeping default buttons");
-    }
-}
+        async function loadProducts() {
+            try {
+                const response = await fetch('products.json');
+                allProducts = await response.json();
+                const grid = document.querySelector('.grid');
+                grid.innerHTML = ''; 
+                allProducts.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <img src="${product.image}" class="product-img" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                        <h2>${product.name}</h2>
+                        <span class="price">$${product.price}</span>
+                        <p style="color:#ccc; font-size:0.9rem;">${product.description}</p>
+                        <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none; color:black; cursor:pointer;">Buy Now</button>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.warn("Product load failed, keeping default buttons");
+            }
+        }
 
-function buyProduct(name) {
-    console.log("Buy button clicked for: " + name);
-    currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
-    document.getElementById('modalTitle').innerText = name;
-    document.getElementById('orderModal').style.display = 'block';
-    document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
-    resetTimer(); // Keep timer alive
-}
+        function buyProduct(name) {
+            currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
+            document.getElementById('modalTitle').innerText = name;
+            document.getElementById('orderModal').style.display = 'block';
+            document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
+            resetTimer(); 
+        }
 
-function closeModal() {
-    document.getElementById('orderModal').style.display = 'none';
-}
+        function closeModal() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
 
-// 3. THE FIXED PROCESS FUNCTION
-function processOrder() {
-    const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
-    const amountCents = parseInt(Math.round(currentOrder.price * 100));
-    const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
+        function processOrder() {
+            // Failsafe in case config hasn't loaded yet
+            if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
+                alert("Please wait a moment for the system to fully connect to Square.");
+                return;
+            }
 
-    const squareIntent = 
-        `intent:#Intent;` +
-        `action=com.squareup.pos.action.CHARGE;` +
-        `package=com.squareup;` +
-        `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
-        `S.com.squareup.pos.CLIENT_ID=${appId};` +
-        `S.com.squareup.pos.API_VERSION=v2.0;` + 
-        `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
-        `S.com.squareup.pos.CURRENCY_CODE=USD;` +
-        `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
-        `b.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
-        `S.browser_fallback_url=${callbackUrl};` +
-        `end`;
+            const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
+            const amountCents = parseInt(Math.round(currentOrder.price * 100));
+            const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
-    window.location.href = squareIntent;
-}
+            const squareIntent = 
+                `intent:#Intent;` +
+                `action=com.squareup.pos.action.CHARGE;` +
+                `package=com.squareup;` +
+                `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
+                `S.com.squareup.pos.CLIENT_ID=${appId};` +
+                `S.com.squareup.pos.API_VERSION=v2.0;` + 
+                `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
+                `S.com.squareup.pos.CURRENCY_CODE=USD;` +
+                `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
+                `b.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
+                `S.browser_fallback_url=${callbackUrl};` +
+                `end`;
 
-// 4. Initialization & Success Handling
-window.onload = () => {
-    loadConfig();
-    loadProducts();
+            window.location.href = squareIntent;
+        }
 
-    const urlParams = new URLSearchParams(window.location.search);
+        window.onload = () => {
+            loadConfig();
+            loadProducts();
 
-    if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
-        // Erase Square's ID from the URL immediately so it doesn't cause a loop
-        window.history.replaceState({}, document.title, window.location.pathname);
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
+                // Erase Square's ID from URL immediately so refresh won't trigger this loop
+                window.history.replaceState({}, document.title, window.location.pathname);
 
-        // Hide normal UI and show printing screen
-        document.getElementById('attract-screen').style.display = 'none';
-        document.getElementById('orderModal').style.display = 'none';
-        document.getElementById('printingScreen').style.display = 'flex';
+                document.getElementById('attract-screen').style.display = 'none';
+                document.getElementById('orderModal').style.display = 'none';
+                document.getElementById('printingScreen').style.display = 'flex';
 
-        // Hard-reset the page back to its purest form after 10 seconds
-        setTimeout(() => {
-            window.location.href = window.location.pathname; 
-        }, 10000);
-    }
-};
+                setTimeout(() => {
+                    // Hard-reset the page back to its purest form
+                    window.location.href = window.location.pathname; 
+                }, 10000);
+            }
+        };
 
-function startKiosk() {
-    // 5. WIPE GHOST DATA on every new customer touch
-    document.getElementById('rowInput').value = '';
-    document.getElementById('seatInput').value = '';
-    document.getElementById('shippingName').value = '';
-    document.getElementById('shippingAddress').value = '';
+        function startKiosk() {
+            // WIPE GHOST DATA on every new customer touch
+            document.getElementById('rowInput').value = '';
+            document.getElementById('seatInput').value = '';
+            document.getElementById('shippingName').value = '';
+            document.getElementById('shippingAddress').value = '';
 
-    const curtain = document.getElementById('attract-screen');
-    curtain.style.opacity = '0';
-    setTimeout(() => { curtain.style.display = 'none'; }, 500);
-    resetTimer();
-}
+            const curtain = document.getElementById('attract-screen');
+            curtain.style.opacity = '0';
+            setTimeout(() => { curtain.style.display = 'none'; }, 500);
+            resetTimer();
+        }
 
-function resetTimer() {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { 
-        // A "Hard Reset" ensures no ghost data survives a timeout
-        window.location.href = window.location.pathname; 
-    }, 60000); 
-}
-
+        function resetTimer() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => { 
+                window.location.href = window.location.pathname; 
+            }, 60000); 
+        }
     </script>
 </body>
 </html>
