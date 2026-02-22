@@ -213,164 +213,178 @@
     </div>
 
     <script>
-        window.onerror = function(message, source, lineno) {
-            alert("System Error: " + message + " (Line: " + lineno + ")");
-            return true;
-        };
+        // 0. BUG TRACKER
+window.onerror = function(message, source, lineno) {
+    alert("System Error: " + message + " (Line: " + lineno + ")");
+    return true;
+};
 
-        const TAX_RATE = 0.08; // Set your tax rate here
-        let idleTimer;
-        let allProducts = [];
-        let currentOrder = {};
+const TAX_RATE = 0.08; // Set your tax rate here
+let idleTimer;
+let allProducts = [];
+let currentOrder = {};
 
-        async function loadConfig() {
-            try {
-                const response = await fetch('config.json');
-                window.kioskConfig = await response.json(); 
-                document.getElementById('display-venue').innerText = window.kioskConfig.venue_name;
-                document.getElementById('display-event').innerText = `${window.kioskConfig.artist_name} - ${window.kioskConfig.door_time}`;
-            } catch (error) {
-                console.warn("Config load failed, using defaults");
-            }
+async function loadConfig() {
+    try {
+        const response = await fetch('config.json');
+        window.kioskConfig = await response.json(); 
+        document.getElementById('display-venue').innerText = window.kioskConfig.venue_name;
+        document.getElementById('display-event').innerText = `${window.kioskConfig.artist_name} - ${window.kioskConfig.door_time}`;
+    } catch (error) {
+        console.warn("Config load failed, using defaults");
+    }
+}
+
+async function loadProducts() {
+    try {
+        const response = await fetch('products.json');
+        allProducts = await response.json();
+        const grid = document.querySelector('.grid');
+        grid.innerHTML = ''; 
+        allProducts.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <img src="${product.image}" class="product-img" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                <h2>${product.name}</h2>
+                <span class="price">$${product.price}</span>
+                <p style="color:#ccc; font-size:0.9rem;">${product.description}</p>
+                <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none; color:black; cursor:pointer;">SELECT</button>
+            `;
+            grid.appendChild(card);
+        });
+    } catch (error) {
+        console.warn("Product load failed");
+    }
+}
+
+// --- NEW CUSTOM ALERT FUNCTIONS ---
+function showCustomAlert(message) {
+    document.getElementById('alertMessage').innerText = message;
+    document.getElementById('customAlert').style.display = 'block';
+}
+
+function closeAlert() {
+    document.getElementById('customAlert').style.display = 'none';
+    resetTimer(); 
+}
+
+function toggleGA() {
+    const isGA = document.getElementById('gaCheckbox').checked;
+    document.getElementById('seatFields').style.display = isGA ? 'none' : 'block';
+}
+
+function buyProduct(name) {
+    currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
+    document.getElementById('modalTitle').innerText = name;
+    
+    // parseFloat forces the system to treat the price as a math number!
+    const subtotal = parseFloat(currentOrder.price); 
+    const taxAmount = subtotal * TAX_RATE;
+    const finalTotal = subtotal + taxAmount;
+    
+    currentOrder.finalTotal = finalTotal;
+
+    document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
+    document.getElementById('displayTax').innerText = taxAmount.toFixed(2);
+    document.getElementById('displayTotal').innerText = finalTotal.toFixed(2);
+
+    document.getElementById('gaCheckbox').checked = false;
+    toggleGA();
+
+    document.getElementById('orderModal').style.display = 'block';
+    document.getElementById('shippingFields').style.display = (subtotal > 10) ? 'block' : 'none';
+    resetTimer(); 
+}
+
+function closeModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
+
+function processOrder() {
+    const isGA = document.getElementById('gaCheckbox').checked;
+    const row = document.getElementById('rowInput').value.trim();
+    const seat = document.getElementById('seatInput').value.trim();
+
+    if (!isGA && (row === "" || seat === "")) {
+        showCustomAlert("Please enter your Row and Seat, or select General Admission.");
+        return; 
+    }
+
+    if (parseFloat(currentOrder.price) > 10) {
+        const sName = document.getElementById('shippingName').value.trim();
+        const sAddr = document.getElementById('shippingAddress').value.trim();
+        if (sName === "" || sAddr === "") {
+            showCustomAlert("Please fill out your shipping information for the display case.");
+            return;
         }
+    }
 
-        async function loadProducts() {
-            try {
-                const response = await fetch('products.json');
-                allProducts = await response.json();
-                const grid = document.querySelector('.grid');
-                grid.innerHTML = ''; 
-                allProducts.forEach(product => {
-                    const card = document.createElement('div');
-                    card.className = 'product-card';
-                    card.innerHTML = `
-                        <img src="${product.image}" class="product-img" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
-                        <h2>${product.name}</h2>
-                        <span class="price">$${product.price}</span>
-                        <p style="color:#ccc; font-size:0.9rem;">${product.description}</p>
-                        <button onclick="buyProduct('${product.name}')" style="padding:15px; background:orange; font-weight:bold; border-radius:10px; border:none; color:black; cursor:pointer;">Buy Now</button>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch (error) {
-                console.warn("Product load failed");
-            }
-        }
+    if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
+        showCustomAlert("System loading, please wait a moment.");
+        return;
+    }
 
-        function toggleGA() {
-            const isGA = document.getElementById('gaCheckbox').checked;
-            document.getElementById('seatFields').style.display = isGA ? 'none' : 'block';
-        }
+    const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
+    const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
+    const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
-        function buyProduct(name) {
-            currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
-            document.getElementById('modalTitle').innerText = name;
-            
-            const subtotal = currentOrder.price;
-            const taxAmount = subtotal * TAX_RATE;
-            const finalTotal = subtotal + taxAmount;
-            
-            currentOrder.finalTotal = finalTotal;
+    const squareIntent = 
+        `intent:#Intent;` +
+        `action=com.squareup.pos.action.CHARGE;` +
+        `package=com.squareup;` +
+        `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
+        `S.com.squareup.pos.CLIENT_ID=${appId};` +
+        `S.com.squareup.pos.API_VERSION=v2.0;` + 
+        `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
+        `S.com.squareup.pos.CURRENCY_CODE=USD;` +
+        `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
+        `B.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
+        `S.browser_fallback_url=${callbackUrl};` +
+        `end`;
 
-            document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
-            document.getElementById('displayTax').innerText = taxAmount.toFixed(2);
-            document.getElementById('displayTotal').innerText = finalTotal.toFixed(2);
+    window.location.href = squareIntent;
+}
 
-            document.getElementById('gaCheckbox').checked = false;
-            toggleGA();
+window.onload = () => {
+    loadConfig();
+    loadProducts();
 
-            document.getElementById('orderModal').style.display = 'block';
-            document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
-            resetTimer(); 
-        }
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
 
-        function closeModal() {
-            document.getElementById('orderModal').style.display = 'none';
-        }
+        document.getElementById('attract-screen').style.display = 'none';
+        document.getElementById('orderModal').style.display = 'none';
+        document.getElementById('printingScreen').style.display = 'flex';
 
-        function processOrder() {
-            const isGA = document.getElementById('gaCheckbox').checked;
-            const row = document.getElementById('rowInput').value.trim();
-            const seat = document.getElementById('seatInput').value.trim();
+        setTimeout(() => {
+            window.location.href = window.location.pathname; 
+        }, 10000);
+    }
+};
 
-            if (!isGA && (row === "" || seat === "")) {
-                alert("Please enter your Row and Seat, or select General Admission.");
-                return;
-            }
+function startKiosk() {
+    document.getElementById('rowInput').value = '';
+    document.getElementById('seatInput').value = '';
+    document.getElementById('shippingName').value = '';
+    document.getElementById('shippingAddress').value = '';
+    document.getElementById('gaCheckbox').checked = false;
+    toggleGA();
 
-            if (currentOrder.price > 10) {
-                const sName = document.getElementById('shippingName').value.trim();
-                const sAddr = document.getElementById('shippingAddress').value.trim();
-                if (sName === "" || sAddr === "") {
-                    alert("Please fill out your shipping information.");
-                    return;
-                }
-            }
+    const curtain = document.getElementById('attract-screen');
+    curtain.style.opacity = '0';
+    setTimeout(() => { curtain.style.display = 'none'; }, 500);
+    resetTimer();
+}
 
-            if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
-                alert("System loading, please wait a moment.");
-                return;
-            }
+function resetTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { 
+        window.location.href = window.location.pathname; 
+    }, 60000); 
+}
 
-            const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
-            const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
-            const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
-
-            const squareIntent = 
-                `intent:#Intent;` +
-                `action=com.squareup.pos.action.CHARGE;` +
-                `package=com.squareup;` +
-                `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
-                `S.com.squareup.pos.CLIENT_ID=${appId};` +
-                `S.com.squareup.pos.API_VERSION=v2.0;` + 
-                `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
-                `S.com.squareup.pos.CURRENCY_CODE=USD;` +
-                `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
-                `B.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
-                `S.browser_fallback_url=${callbackUrl};` +
-                `end`;
-
-            window.location.href = squareIntent;
-        }
-
-        window.onload = () => {
-            loadConfig();
-            loadProducts();
-
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-
-                document.getElementById('attract-screen').style.display = 'none';
-                document.getElementById('orderModal').style.display = 'none';
-                document.getElementById('printingScreen').style.display = 'flex';
-
-                setTimeout(() => {
-                    window.location.href = window.location.pathname; 
-                }, 10000);
-            }
-        };
-
-        function startKiosk() {
-            document.getElementById('rowInput').value = '';
-            document.getElementById('seatInput').value = '';
-            document.getElementById('shippingName').value = '';
-            document.getElementById('shippingAddress').value = '';
-            document.getElementById('gaCheckbox').checked = false;
-            toggleGA();
-
-            const curtain = document.getElementById('attract-screen');
-            curtain.style.opacity = '0';
-            setTimeout(() => { curtain.style.display = 'none'; }, 500);
-            resetTimer();
-        }
-
-        function resetTimer() {
-            clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => { 
-                window.location.href = window.location.pathname; 
-            }, 60000); 
-        }
     </script>
 </body>
 </html>
