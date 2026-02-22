@@ -17,7 +17,6 @@
             overflow-y: auto; 
         }
 
-        /* Version Marker */
         #version-marker {
             position: fixed;
             top: 5px;
@@ -153,7 +152,7 @@
 </head>
 <body>
 
-    <div id="version-marker">v2.1</div>
+    <div id="version-marker">v2.2</div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -182,13 +181,26 @@
     <div id="orderModal">
         <h2 id="modalTitle" style="color:orange; margin-top:0;">Ticket Details</h2>
 
-        <input type="text" id="rowInput" class="modal-input" placeholder="Row (e.g., A)">
-        <input type="text" id="seatInput" class="modal-input" placeholder="Seat (e.g., 12)">
+        <label style="display: flex; align-items: center; margin-bottom: 15px; cursor: pointer; font-size: 1.1rem;">
+            <input type="checkbox" id="gaCheckbox" onchange="toggleGA()" style="width: 20px; height: 20px; margin-right: 10px;">
+            General Admission / Standing
+        </label>
+
+        <div id="seatFields">
+            <input type="text" id="rowInput" class="modal-input" placeholder="Row (e.g., A)">
+            <input type="text" id="seatInput" class="modal-input" placeholder="Seat (e.g., 12)">
+        </div>
 
         <div id="shippingFields" style="display:none; border-top: 1px solid #444; margin-top:15px; padding-top:15px;">
             <h3 style="font-size:1rem; margin-bottom:10px;">Shipping for Display Case:</h3>
             <input type="text" id="shippingName" class="modal-input" placeholder="Full Name">
             <input type="text" id="shippingAddress" class="modal-input" placeholder="Street, City, Zip">
+        </div>
+
+        <div style="margin-top: 15px; background: #222; padding: 15px; border-radius: 10px; text-align: right;">
+            <div>Subtotal: $<span id="displaySubtotal">0.00</span></div>
+            <div style="color: #aaa; font-size: 0.9rem;">Tax: $<span id="displayTax">0.00</span></div>
+            <div style="color: orange; font-size: 1.4rem; font-weight: bold; margin-top: 5px;">Total: $<span id="displayTotal">0.00</span></div>
         </div>
 
         <button onclick="processOrder()" style="width:100%; background:orange; color:black; padding:18px; margin-top:20px; font-weight:bold; border-radius:10px; border:none; font-size:1.3rem;">CONFIRM & PAY</button>
@@ -201,12 +213,12 @@
     </div>
 
     <script>
-        // 0. BUG TRACKER
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
             return true;
         };
 
+        const TAX_RATE = 0.08; // Set your tax rate here
         let idleTimer;
         let allProducts = [];
         let currentOrder = {};
@@ -241,13 +253,32 @@
                     grid.appendChild(card);
                 });
             } catch (error) {
-                console.warn("Product load failed, keeping default buttons");
+                console.warn("Product load failed");
             }
+        }
+
+        function toggleGA() {
+            const isGA = document.getElementById('gaCheckbox').checked;
+            document.getElementById('seatFields').style.display = isGA ? 'none' : 'block';
         }
 
         function buyProduct(name) {
             currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
             document.getElementById('modalTitle').innerText = name;
+            
+            const subtotal = currentOrder.price;
+            const taxAmount = subtotal * TAX_RATE;
+            const finalTotal = subtotal + taxAmount;
+            
+            currentOrder.finalTotal = finalTotal;
+
+            document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('displayTax').innerText = taxAmount.toFixed(2);
+            document.getElementById('displayTotal').innerText = finalTotal.toFixed(2);
+
+            document.getElementById('gaCheckbox').checked = false;
+            toggleGA();
+
             document.getElementById('orderModal').style.display = 'block';
             document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
             resetTimer(); 
@@ -258,14 +289,31 @@
         }
 
         function processOrder() {
-            // Failsafe in case config hasn't loaded yet
+            const isGA = document.getElementById('gaCheckbox').checked;
+            const row = document.getElementById('rowInput').value.trim();
+            const seat = document.getElementById('seatInput').value.trim();
+
+            if (!isGA && (row === "" || seat === "")) {
+                alert("Please enter your Row and Seat, or select General Admission.");
+                return;
+            }
+
+            if (currentOrder.price > 10) {
+                const sName = document.getElementById('shippingName').value.trim();
+                const sAddr = document.getElementById('shippingAddress').value.trim();
+                if (sName === "" || sAddr === "") {
+                    alert("Please fill out your shipping information.");
+                    return;
+                }
+            }
+
             if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
-                alert("Please wait a moment for the system to fully connect to Square.");
+                alert("System loading, please wait a moment.");
                 return;
             }
 
             const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
-            const amountCents = parseInt(Math.round(currentOrder.price * 100));
+            const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
             const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
             const squareIntent = 
@@ -291,7 +339,6 @@
 
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
-                // Erase Square's ID from URL immediately so refresh won't trigger this loop
                 window.history.replaceState({}, document.title, window.location.pathname);
 
                 document.getElementById('attract-screen').style.display = 'none';
@@ -299,18 +346,18 @@
                 document.getElementById('printingScreen').style.display = 'flex';
 
                 setTimeout(() => {
-                    // Hard-reset the page back to its purest form
                     window.location.href = window.location.pathname; 
                 }, 10000);
             }
         };
 
         function startKiosk() {
-            // WIPE GHOST DATA on every new customer touch
             document.getElementById('rowInput').value = '';
             document.getElementById('seatInput').value = '';
             document.getElementById('shippingName').value = '';
             document.getElementById('shippingAddress').value = '';
+            document.getElementById('gaCheckbox').checked = false;
+            toggleGA();
 
             const curtain = document.getElementById('attract-screen');
             curtain.style.opacity = '0';
@@ -327,3 +374,4 @@
     </script>
 </body>
 </html>
+
