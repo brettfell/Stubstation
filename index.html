@@ -278,6 +278,9 @@ function processOrder() {
         `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
         `S.com.squareup.pos.CURRENCY_CODE=USD;` +
         `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
+
+"S.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;" +
+
         `S.browser_fallback_url=${callbackUrl};` +
         `end`;
 
