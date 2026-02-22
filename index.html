@@ -255,6 +255,7 @@ function buyProduct(name) {
     document.getElementById('modalTitle').innerText = name;
     document.getElementById('orderModal').style.display = 'block';
     document.getElementById('shippingFields').style.display = (currentOrder.price > 10) ? 'block' : 'none';
+    resetTimer(); // Keep the timer alive when they are interacting
 }
 
 function closeModal() {
@@ -263,13 +264,9 @@ function closeModal() {
 
 // 3. THE FIXED PROCESS FUNCTION
 function processOrder() {
-    // 1. Aggressive cleaning of the App ID to fix that line-break issue
+    // 1. Clean the App ID safely
     const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
-
-    // 2. Square requires a whole integer (cents)
     const amountCents = parseInt(Math.round(currentOrder.price * 100));
-
-    // 3. MUST match your dashboard character-for-character (Case Sensitive!)
     const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
     const squareIntent = 
@@ -286,39 +283,41 @@ function processOrder() {
         `S.browser_fallback_url=${callbackUrl};` +
         `end`;
 
-    console.log("Launching Intent to Square...");
+    console.log("Jumping to Square...");
     window.location.href = squareIntent;
 }
 
 // 4. Initialization & Success Handling
 window.onload = () => {
+    // A. DEFEAT "GHOST DATA" - Force inputs to clear immediately on page load
+    document.getElementById('rowInput').value = '';
+    document.getElementById('seatInput').value = '';
+    document.getElementById('shippingName').value = '';
+    document.getElementById('shippingAddress').value = '';
+
     loadConfig();
     loadProducts();
 
-    // Check if we just returned from a successful Square payment
+    // B. Check if we just returned from a successful Square payment
     const urlParams = new URLSearchParams(window.location.search);
-    
-    // Square appends this ID to the URL when a payment succeeds
+
     if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
         console.log("Payment Success Detected!");
 
-        // 1. Hide the "Touch to Start" attract screen and Order Modal
-        document.getElementById('attract-screen').style.display = 'none';
-        document.getElementById('orderModal').style.display = 'none';
-        
-        // 2. Show the Printing Screen overlay
-        document.getElementById('printingScreen').style.display = 'flex';
-
-        // 3. Clean the URL (Removes the Square IDs so refreshing the page doesn't "re-print")
+        // 1. Erase the Transaction ID from the URL *first* so a reload doesn't trigger this again
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        // 4. TODO: TRIGGER BOCA PRINTER HERE
-        console.log("Sending command to Boca Printer...");
+        // 2. Hide everything else
+        document.getElementById('attract-screen').style.display = 'none';
+        document.getElementById('orderModal').style.display = 'none';
 
-        // 5. Reset to the start screen after 15 seconds
+        // 3. Show the Printing Screen
+        document.getElementById('printingScreen').style.display = 'flex';
+
+        // 4. Reset to the start screen after 10 seconds
         setTimeout(() => {
             location.reload(); 
-        }, 15000);
+        }, 10000);
     }
 };
 
@@ -332,16 +331,16 @@ function startKiosk() {
 function resetTimer() {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => { 
-        // Clear all sensitive data before the page reloads
+        // Ensure inputs are wiped if it times out
         document.getElementById('rowInput').value = '';
         document.getElementById('seatInput').value = '';
         document.getElementById('shippingName').value = '';
         document.getElementById('shippingAddress').value = '';
-        
+
         location.reload(); 
     }, 60000); 
 }
 
-    </script>
+</script>
 </body>
 </html>
