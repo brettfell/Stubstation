@@ -3,7 +3,24 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StubStation</title>
+    <link rel="manifest" href="manifest.json">
+    
     <style>
+        /* --- THE KIOSK LOCKDOWN CSS --- */
+        * {
+            user-select: none; 
+            -webkit-user-select: none; 
+            -webkit-touch-callout: none; 
+            -webkit-user-drag: none; 
+        }
+        
+        /* We MUST allow text selection inside input boxes, or the keyboard won't work! */
+        input {
+            user-select: auto;
+            -webkit-user-select: auto;
+        }
+        /* ------------------------------ */
+
         body {
             background: #000;
             color: white;
@@ -169,7 +186,7 @@
 </head>
 <body>
 
-    <div id="version-marker">v2.4</div>
+    <div id="version-marker">v2.6</div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -235,13 +252,12 @@
     </div>
 
     <script>
-        // 0. BUG TRACKER
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
             return true;
         };
 
-        const TAX_RATE = 0.08; // Set your tax rate here
+        const TAX_RATE = 0.08; 
         let idleTimer;
         let allProducts = [];
         let currentOrder = {};
@@ -280,7 +296,6 @@
             }
         }
 
-        // --- NEW CUSTOM ALERT FUNCTIONS ---
         function showCustomAlert(message) {
             document.getElementById('alertMessage').innerText = message;
             document.getElementById('customAlert').style.display = 'block';
@@ -354,7 +369,6 @@
                 `intent:#Intent;` +
                 `action=com.squareup.pos.action.CHARGE;` +
                 `package=com.squareup;` +
-                `launchFlags=0x10000000;` + 
                 `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
                 `S.com.squareup.pos.CLIENT_ID=${appId};` +
                 `S.com.squareup.pos.API_VERSION=v2.0;` + 
@@ -365,15 +379,17 @@
                 `S.browser_fallback_url=${callbackUrl};` +
                 `end`;
 
-            // --- THE WEBVIEW HACK ---
-            const link = document.createElement('a');
-            link.href = squareIntent;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Clean Chrome launch
+            window.location.href = squareIntent;
         }
 
         window.onload = () => {
+            // --- THE BACK BUTTON TRAP ---
+            window.history.pushState(null, "", window.location.href);
+            window.onpopstate = function() {
+                window.history.pushState(null, "", window.location.href);
+            };
+
             loadConfig();
             loadProducts();
 
@@ -392,6 +408,11 @@
         };
 
         function startKiosk() {
+            // Force browser fullscreen if supported
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch((e) => console.log("Fullscreen blocked by OS"));
+            }
+
             document.getElementById('rowInput').value = '';
             document.getElementById('seatInput').value = '';
             document.getElementById('shippingName').value = '';
@@ -414,3 +435,4 @@
     </script>
 </body>
 </html>
+
