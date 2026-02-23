@@ -14,7 +14,6 @@
             -webkit-user-drag: none; 
         }
         
-        /* We MUST allow text selection inside input boxes, or the keyboard won't work! */
         input {
             user-select: auto;
             -webkit-user-select: auto;
@@ -186,7 +185,7 @@
 </head>
 <body>
 
-    <div id="version-marker">v2.8</div>
+    <div id="version-marker">v2.9</div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -384,61 +383,71 @@
         }
 
         window.onload = () => {
-            // --- REGISTER SERVICE WORKER ---
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js');
             }
 
-            // --- THE BACK BUTTON TRAP ---
             window.history.pushState(null, "", window.location.href);
             window.onpopstate = function() {
                 window.history.pushState(null, "", window.location.href);
             };
 
-            // --- THE BOOMERANG HACK (CROSS-TAB COMMUNICATION) ---
-            const squareChannel = new BroadcastChannel('square_payment_channel');
             const urlParams = new URLSearchParams(window.location.search);
+            const hasTransaction = urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID');
+            
+            // --- CLAUDE'S DISPLAY MODE TRICK ---
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone;
+            const squareChannel = new BroadcastChannel('square_payment_channel');
 
-            if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
-                // 1. WE ARE THE ROGUE NEW TAB: Broadcast the signal and self-destruct
-                squareChannel.postMessage('PAYMENT_SUCCESS');
-                
-                // Show a fake loading screen just in case self-destruct is slightly delayed
-                document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#000;'><h1 style='color:orange; font-size:2rem; text-align:center; font-family:sans-serif;'>Finalizing Payment...<br><span style='font-size:1rem; color:#888;'>Returning to Kiosk</span></h1></div>";
-                
-                // Instantly assassinate this tab
-                setTimeout(() => {
-                    window.close();
+            if (hasTransaction) {
+                if (!isStandalone) {
+                    // 1. WE ARE THE ROGUE NEW TAB
+                    // Broadcast success immediately
+                    squareChannel.postMessage('PAYMENT_SUCCESS');
                     
-                    // Fallback: If Android blocks window.close(), tell them to close it manually
-                    setTimeout(() => {
-                        document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#000;'><h1 style='color:orange; font-size:2rem; text-align:center; font-family:sans-serif;'>Payment Complete!</h1><p style='color:white; font-size:1.2rem;'>Please tap 'Back' or close this tab to return to the kiosk.</p></div>";
-                    }, 1000);
-                }, 500); 
-                
+                    // Wipe the entire screen and replace it with a giant invisible button trap
+                    document.body.innerHTML = `
+                        <div id="rogueTrap" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;">
+                            <h1 style="color:orange; font-size:3rem; text-align:center; font-family:sans-serif; margin-bottom:20px;">Payment Complete!</h1>
+                            <p style="color:white; font-size:1.5rem; font-family:sans-serif; background:#333; padding:20px 40px; border-radius:50px; animation: pulse 2s infinite;">TAP ANYWHERE TO RETURN</p>
+                        </div>
+                    `;
+                    
+                    // The moment they tap ANYWHERE on the screen, assassinate the tab
+                    document.getElementById('rogueTrap').addEventListener('click', () => {
+                        window.close();
+                    });
+                    
+                    // Still attempt the automated close just in case Android is feeling generous
+                    setTimeout(() => window.close(), 500);
+                    
+                } else {
+                    // 2. WE ARE THE MAIN PWA (Square managed to route correctly!)
+                    document.getElementById('attract-screen').style.display = 'none';
+                    document.getElementById('orderModal').style.display = 'none';
+                    document.getElementById('printingScreen').style.display = 'flex';
+                    setTimeout(() => { window.location.href = window.location.pathname; }, 10000);
+                }
             } else {
-                // 2. WE ARE THE MAIN PWA WINDOW: Listen for the success signal
+                // 3. NORMAL BOOT (No transaction in progress)
                 squareChannel.onmessage = (event) => {
                     if (event.data === 'PAYMENT_SUCCESS') {
                         document.getElementById('attract-screen').style.display = 'none';
                         document.getElementById('orderModal').style.display = 'none';
                         document.getElementById('printingScreen').style.display = 'flex';
                         
-                        // Reset the kiosk after 10 seconds
                         setTimeout(() => {
                             window.location.href = window.location.pathname; 
                         }, 10000);
                     }
                 };
 
-                // Normal boot sequence
                 loadConfig();
                 loadProducts();
             }
         };
 
         function startKiosk() {
-            // Force browser fullscreen if supported
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch((e) => console.log("Fullscreen blocked by OS"));
             }
@@ -465,6 +474,3 @@
     </script>
 </body>
 </html>
-
-
-
