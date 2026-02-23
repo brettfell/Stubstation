@@ -185,7 +185,7 @@
 </head>
 <body>
 
-    <div id="version-marker">v2.9</div>
+    <div id="version-marker">v2.10</div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -402,9 +402,12 @@
             if (hasTransaction) {
                 if (!isStandalone) {
                     // 1. WE ARE THE ROGUE NEW TAB
-                    // Broadcast success immediately
+                    // Broadcast success to the PWA immediately
                     squareChannel.postMessage('PAYMENT_SUCCESS');
                     
+                    // The Android "Go Home" Intent Hack
+                    const goHomeIntent = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end";
+
                     // Wipe the entire screen and replace it with a giant invisible button trap
                     document.body.innerHTML = `
                         <div id="rogueTrap" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;">
@@ -413,13 +416,15 @@
                         </div>
                     `;
                     
-                    // The moment they tap ANYWHERE on the screen, assassinate the tab
+                    // The moment they tap ANYWHERE, force Android to go "Home" (which Fully forces back to the PWA)
                     document.getElementById('rogueTrap').addEventListener('click', () => {
-                        window.close();
+                        window.location.href = goHomeIntent;
                     });
                     
-                    // Still attempt the automated close just in case Android is feeling generous
-                    setTimeout(() => window.close(), 500);
+                    // Try it automatically after 500ms so the user doesn't even have to tap
+                    setTimeout(() => {
+                        window.location.href = goHomeIntent;
+                    }, 500);
                     
                 } else {
                     // 2. WE ARE THE MAIN PWA (Square managed to route correctly!)
