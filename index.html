@@ -355,6 +355,11 @@ function processOrder() {
         `intent:#Intent;` +
         `action=com.squareup.pos.action.CHARGE;` +
         `package=com.squareup;` +
+        
+        // --- THIS IS THE FULLY KIOSK OVERRIDE CODE ---
+        `launchFlags=0x10000000;` + 
+        // ---------------------------------------------
+
         `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
         `S.com.squareup.pos.CLIENT_ID=${appId};` +
         `S.com.squareup.pos.API_VERSION=v2.0;` + 
@@ -367,6 +372,7 @@ function processOrder() {
 
     window.location.href = squareIntent;
 }
+
 
 window.onload = () => {
     loadConfig();
