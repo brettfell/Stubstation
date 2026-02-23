@@ -186,7 +186,7 @@
 </head>
 <body>
 
-    <div id="version-marker">v2.7</div>
+    <div id="version-marker">v2.8</div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -395,20 +395,45 @@
                 window.history.pushState(null, "", window.location.href);
             };
 
-            loadConfig();
-            loadProducts();
-
+            // --- THE BOOMERANG HACK (CROSS-TAB COMMUNICATION) ---
+            const squareChannel = new BroadcastChannel('square_payment_channel');
             const urlParams = new URLSearchParams(window.location.search);
+
             if (urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID')) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-
-                document.getElementById('attract-screen').style.display = 'none';
-                document.getElementById('orderModal').style.display = 'none';
-                document.getElementById('printingScreen').style.display = 'flex';
-
+                // 1. WE ARE THE ROGUE NEW TAB: Broadcast the signal and self-destruct
+                squareChannel.postMessage('PAYMENT_SUCCESS');
+                
+                // Show a fake loading screen just in case self-destruct is slightly delayed
+                document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#000;'><h1 style='color:orange; font-size:2rem; text-align:center; font-family:sans-serif;'>Finalizing Payment...<br><span style='font-size:1rem; color:#888;'>Returning to Kiosk</span></h1></div>";
+                
+                // Instantly assassinate this tab
                 setTimeout(() => {
-                    window.location.href = window.location.pathname; 
-                }, 10000);
+                    window.close();
+                    
+                    // Fallback: If Android blocks window.close(), tell them to close it manually
+                    setTimeout(() => {
+                        document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#000;'><h1 style='color:orange; font-size:2rem; text-align:center; font-family:sans-serif;'>Payment Complete!</h1><p style='color:white; font-size:1.2rem;'>Please tap 'Back' or close this tab to return to the kiosk.</p></div>";
+                    }, 1000);
+                }, 500); 
+                
+            } else {
+                // 2. WE ARE THE MAIN PWA WINDOW: Listen for the success signal
+                squareChannel.onmessage = (event) => {
+                    if (event.data === 'PAYMENT_SUCCESS') {
+                        document.getElementById('attract-screen').style.display = 'none';
+                        document.getElementById('orderModal').style.display = 'none';
+                        document.getElementById('printingScreen').style.display = 'flex';
+                        
+                        // Reset the kiosk after 10 seconds
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname; 
+                        }, 10000);
+                    }
+                };
+
+                // Normal boot sequence
+                loadConfig();
+                loadProducts();
             }
         };
 
@@ -440,5 +465,6 @@
     </script>
 </body>
 </html>
+
 
 
