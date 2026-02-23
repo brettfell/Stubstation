@@ -1,17 +1,11 @@
-function processOrder(orderDetails) {
-    // Validate order details
-    if (!orderDetails) {
-        console.error('Error: Order details are missing.');
-        return;
-    }
-
-    // Construct the intent without the FLAG_ACTIVITY_NEW_TASK flag
-    const intentUri = `intent:#Intent;action=com.example.ACTION_PROCESS_ORDER;"+  \n"category=android.intent.category.DEFAULT;end`;
-
-    // Start the intent (assuming this is a web context)
-    try {
-        window.location.href = intentUri;
-    } catch (error) {
-        console.error('Error launching intent:', error);
-    }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Title</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>
