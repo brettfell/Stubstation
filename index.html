@@ -2,9 +2,9 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StubStation</title>
+    <title>StubStation Kiosk</title>
     <link rel="manifest" href="manifest.json">
-    
+
     <style>
         /* --- THE KIOSK LOCKDOWN CSS --- */
         * {
@@ -13,7 +13,7 @@
             -webkit-touch-callout: none; 
             -webkit-user-drag: none; 
         }
-        
+
         input {
             user-select: auto;
             -webkit-user-select: auto;
@@ -185,7 +185,7 @@
 </head>
 <body>
 
-    <div id="version-marker">v2.10</div>
+    <div id="version-marker">v3.0 - MailerSend Integration</div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -235,6 +235,16 @@
             <input type="text" id="shippingAddress" class="modal-input" placeholder="Street, City, Zip">
         </div>
 
+        <!-- NEW DIGITAL RECEIPT SECTION -->
+        <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
+            <label style="display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; font-size: 1.1rem;">
+                <input type="checkbox" id="receiptCheckbox" onchange="toggleEmailInput()" style="width: 20px; height: 20px; margin-right: 10px;">
+                Send me a digital receipt
+            </label>
+            <input type="email" id="customerEmail" class="modal-input" placeholder="Enter your email address" style="display: none; width: 90%;">
+        </div>
+        <!-- --------------------------- -->
+
         <div style="margin-top: 15px; background: #222; padding: 15px; border-radius: 10px; text-align: right;">
             <div>Subtotal: $<span id="displaySubtotal">0.00</span></div>
             <div style="color: #aaa; font-size: 0.9rem;">Tax: $<span id="displayTax">0.00</span></div>
@@ -260,6 +270,70 @@
         let idleTimer;
         let allProducts = [];
         let currentOrder = {};
+
+        // --- NEW EMAIL/SERIAL FUNCTIONS ---
+        function toggleEmailInput() {
+            const isChecked = document.getElementById('receiptCheckbox').checked;
+            document.getElementById('customerEmail').style.display = isChecked ? 'block' : 'none';
+        }
+
+        function generateSerialNumber() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay).toString().padStart(3, '0');
+            
+            const year = now.getFullYear().toString().slice(-2);
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            
+            return `${dayOfYear}${year}${hours}${minutes}`;
+        }
+
+        async function sendDigitalReceipt(customerEmail, finalTotal, serialNumber) {
+            const apiKey = "YOUR_MAILERSEND_API_TOKEN_HERE"; // <--- PASTE YOUR API KEY HERE
+            const url = "https://api.mailersend.com/v1/email";
+
+            const payload = {
+                "from": {
+                    "email": "sales@stubstationkiosk.com",
+                    "name": "StubStation"
+                },
+                "to": [
+                    { "email": customerEmail }
+                ],
+                "subject": "Your StubStation Souvenir Receipt",
+                "html": `
+                    <div style="font-family: sans-serif; padding: 20px; text-align: center; background: #f4f4f4;">
+                        <div style="background: white; border: 2px dashed #333; padding: 30px; max-width: 400px; margin: 0 auto;">
+                            <h2>Thanks for your purchase!</h2>
+                            <p style="color: #888;">Verification ID</p>
+                            <p style="font-size: 18px; font-weight: bold;">${serialNumber}</p>
+                            <br>
+                            <p style="color: #888;">Amount Paid</p>
+                            <p style="font-size: 18px; font-weight: bold;">$${finalTotal}</p>
+                        </div>
+                    </div>
+                `
+            };
+
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Receipt sent to MailerSend!");
+            } catch (error) {
+                console.error("Failed to send receipt:", error);
+            }
+        }
+        // ----------------------------------
 
         async function loadConfig() {
             try {
@@ -313,11 +387,11 @@
         function buyProduct(name) {
             currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
             document.getElementById('modalTitle').innerText = name;
-            
+
             const subtotal = parseFloat(currentOrder.price); 
             const taxAmount = subtotal * TAX_RATE;
             const finalTotal = subtotal + taxAmount;
-            
+
             currentOrder.finalTotal = finalTotal;
 
             document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
@@ -326,6 +400,11 @@
 
             document.getElementById('gaCheckbox').checked = false;
             toggleGA();
+
+            // Reset email fields for new customer
+            document.getElementById('receiptCheckbox').checked = false;
+            document.getElementById('customerEmail').value = '';
+            toggleEmailInput();
 
             document.getElementById('orderModal').style.display = 'block';
             document.getElementById('shippingFields').style.display = (subtotal > 10) ? 'block' : 'none';
@@ -360,9 +439,20 @@
                 return;
             }
 
+            // --- SAVE RECEIPT DATA BEFORE LEAVING FOR SQUARE ---
+            const isReceiptChecked = document.getElementById('receiptCheckbox').checked;
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const serialNumber = generateSerialNumber(); 
+
+            localStorage.setItem('pendingWantsReceipt', isReceiptChecked);
+            localStorage.setItem('pendingEmail', customerEmail);
+            localStorage.setItem('pendingSerial', serialNumber);
+            localStorage.setItem('pendingTotal', currentOrder.finalTotal.toFixed(2));
+            // --------------------------------------------------
+
             const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
             const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
-            const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
+            const callbackUrl = "https://stubstationkiosk.com/kiosk.html"; // Updated per your plan
 
             const squareIntent = 
                 `intent:#Intent;` +
@@ -378,7 +468,6 @@
                 `S.browser_fallback_url=${callbackUrl};` +
                 `end`;
 
-            // Clean Chrome launch
             window.location.href = squareIntent;
         }
 
@@ -394,53 +483,60 @@
 
             const urlParams = new URLSearchParams(window.location.search);
             const hasTransaction = urlParams.has('com.squareup.pos.CLIENT_TRANSACTION_ID');
-            
-            // --- CLAUDE'S DISPLAY MODE TRICK ---
+
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone;
             const squareChannel = new BroadcastChannel('square_payment_channel');
 
             if (hasTransaction) {
+                // --- FIRE EMAIL IF APPLICABLE ---
+                const wantsReceipt = localStorage.getItem('pendingWantsReceipt') === 'true';
+                const savedEmail = localStorage.getItem('pendingEmail');
+                const savedSerial = localStorage.getItem('pendingSerial');
+                const savedTotal = localStorage.getItem('pendingTotal');
+
+                if (wantsReceipt && savedEmail) {
+                    sendDigitalReceipt(savedEmail, savedTotal, savedSerial);
+                }
+
+                // Clean up sticky note
+                localStorage.removeItem('pendingWantsReceipt');
+                localStorage.removeItem('pendingEmail');
+                localStorage.removeItem('pendingSerial');
+                localStorage.removeItem('pendingTotal');
+                // --------------------------------
+
                 if (!isStandalone) {
-                    // 1. WE ARE THE ROGUE NEW TAB
-                    // Broadcast success to the PWA immediately
                     squareChannel.postMessage('PAYMENT_SUCCESS');
-                    
-                    // The Android "Go Home" Intent Hack
                     const goHomeIntent = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end";
 
-                    // Wipe the entire screen and replace it with a giant invisible button trap
                     document.body.innerHTML = `
                         <div id="rogueTrap" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;">
                             <h1 style="color:orange; font-size:3rem; text-align:center; font-family:sans-serif; margin-bottom:20px;">Payment Complete!</h1>
                             <p style="color:white; font-size:1.5rem; font-family:sans-serif; background:#333; padding:20px 40px; border-radius:50px; animation: pulse 2s infinite;">TAP ANYWHERE TO RETURN</p>
                         </div>
                     `;
-                    
-                    // The moment they tap ANYWHERE, force Android to go "Home" (which Fully forces back to the PWA)
+
                     document.getElementById('rogueTrap').addEventListener('click', () => {
                         window.location.href = goHomeIntent;
                     });
-                    
-                    // Try it automatically after 500ms so the user doesn't even have to tap
+
                     setTimeout(() => {
                         window.location.href = goHomeIntent;
                     }, 500);
-                    
+
                 } else {
-                    // 2. WE ARE THE MAIN PWA (Square managed to route correctly!)
                     document.getElementById('attract-screen').style.display = 'none';
                     document.getElementById('orderModal').style.display = 'none';
                     document.getElementById('printingScreen').style.display = 'flex';
                     setTimeout(() => { window.location.href = window.location.pathname; }, 10000);
                 }
             } else {
-                // 3. NORMAL BOOT (No transaction in progress)
                 squareChannel.onmessage = (event) => {
                     if (event.data === 'PAYMENT_SUCCESS') {
                         document.getElementById('attract-screen').style.display = 'none';
                         document.getElementById('orderModal').style.display = 'none';
                         document.getElementById('printingScreen').style.display = 'flex';
-                        
+
                         setTimeout(() => {
                             window.location.href = window.location.pathname; 
                         }, 10000);
@@ -462,7 +558,13 @@
             document.getElementById('shippingName').value = '';
             document.getElementById('shippingAddress').value = '';
             document.getElementById('gaCheckbox').checked = false;
+            
+            // Reset email fields on fresh start
+            document.getElementById('receiptCheckbox').checked = false;
+            document.getElementById('customerEmail').value = '';
+            
             toggleGA();
+            toggleEmailInput();
 
             const curtain = document.getElementById('attract-screen');
             curtain.style.opacity = '0';
