@@ -313,11 +313,13 @@
         let adLotteryHat = [];
 
         // Temporary Ad Database (Will be replaced by ads.json fetch)
-        const adDatabase = [
-            { id: "ad1", src: "https://via.placeholder.com/800x1200/FF5733/FFFFFF?text=Premium+Ad+(Tier+3)", tier: 3 },
-            { id: "ad2", src: "https://via.placeholder.com/800x1200/33C1FF/FFFFFF?text=Standard+Ad+(Tier+1)", tier: 1 },
-            { id: "ad3", src: "https://via.placeholder.com/800x1200/33FF57/000000?text=Standard+Ad+(Tier+1)", tier: 1 }
-        ];
+        // Using your existing local background image to test the rendering!
+const adDatabase = [
+    { id: "ad1", src: "menuBackground1.jpg", tier: 3 },
+    { id: "ad2", src: "menuBackground1.jpg", tier: 1 },
+    { id: "ad3", src: "menuBackground1.jpg", tier: 1 }
+];
+
 
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
