@@ -344,35 +344,49 @@ const adDatabase = [
             console.log("Playing Ad Impression:", selectedAd.id);
         }
 
+// --- UNIFIED TIMER & KIOSK FLOW ---
+
 function resetTimer() {
     clearTimeout(adTimer);
-    // We only restart the countdown here, we don't force a wake-up
+    // One master clock. If untouched, trigger the reset and show ads.
     adTimer = setTimeout(() => {
         startScreensaver();
     }, IDLE_TIMEOUT);
 }
 
 function startScreensaver() {
+    // 1. Cancel any half-finished orders and hide modals
     closeModal(); 
     closeAlert();
+    
+    // 2. Reset the underlying app back to the "Curtain" screen for the next person!
+    const curtain = document.getElementById('attract-screen');
+    curtain.style.display = 'flex';
+    curtain.style.opacity = '1';
+    
+    // 3. Drop the Ad Screensaver over top of the newly reset curtain
     document.getElementById('ad-screensaver').style.display = 'flex';
+    
+    // 4. Fire up the ad rotation
     showNextAd();
     adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
 }
 
 function wakeUpKiosk(event) {
-    // The magic shield to stop "Ghost Clicks"
+    // Shield against the Ghost Click
     if (event) {
         event.preventDefault();
         event.stopPropagation();
     }
 
+    // Hide the ads, which beautifully reveals the Curtain screen underneath!
     document.getElementById('ad-screensaver').style.display = 'none';
     clearInterval(adInterval);
     
-    // Now that we are awake, start counting down 15 seconds again
+    // Start counting down again
     resetTimer(); 
 }
+
 
         document.addEventListener('touchstart', resetTimer);
         document.addEventListener('mousedown', resetTimer);
