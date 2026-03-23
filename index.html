@@ -4,13 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StubStation Kiosk</title>
     <link rel="manifest" href="manifest.json">
-<div id="ad-screensaver" onclick="wakeUpKiosk()">
-    <img id="current-ad-image" src="" alt="Advertisement">
-    <div id="touch-to-start-overlay">TOUCH ANYWHERE TO START</div>
-</div>
 
     <style>
-        /* --- THE KIOSK LOCKDOWN CSS --- */
         * {
             user-select: none; 
             -webkit-user-select: none; 
@@ -22,7 +17,6 @@
             user-select: auto;
             -webkit-user-select: auto;
         }
-        /* ------------------------------ */
 
         body {
             background: #000;
@@ -185,50 +179,54 @@
             width: 80%;
             max-width: 400px;
         }
-/* --- NEW AD SCREENSAVER CSS --- */
-#ad-screensaver {
-    display: none; /* Hidden by default */
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: #000;
-    z-index: 10001; /* Right above the attract screen, below modals */
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
 
-#current-ad-image {
-    max-width: 100%;
-    max-height: 100vh;
-    object-fit: contain;
-    animation: fadeIn 1s;
-}
+        #ad-screensaver {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #000;
+            z-index: 10001; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+        #current-ad-image {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+            animation: fadeIn 1s;
+        }
 
-#touch-to-start-overlay {
-    position: absolute;
-    bottom: 40px;
-    background: rgba(0,0,0,0.7);
-    padding: 15px 40px;
-    border-radius: 50px;
-    border: 2px solid orange;
-    color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-    animation: pulse 2s infinite;
-    pointer-events: none; /* Let clicks pass through to the main screen */
-}
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
+        #touch-to-start-overlay {
+            position: absolute;
+            bottom: 40px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px 40px;
+            border-radius: 50px;
+            border: 2px solid orange;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+            pointer-events: none; 
+        }
     </style>
 </head>
 <body>
 
-    <div id="version-marker">v3.0 - MailerSend Integration</div>
+    <div id="version-marker">v3.1 - DOOH Ad Engine</div>
+
+    <div id="ad-screensaver" onclick="wakeUpKiosk()">
+        <img id="current-ad-image" src="" alt="Advertisement">
+        <div id="touch-to-start-overlay">TOUCH ANYWHERE TO START</div>
+    </div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -278,7 +276,6 @@
             <input type="text" id="shippingAddress" class="modal-input" placeholder="Street, City, Zip">
         </div>
 
-        <!-- NEW DIGITAL RECEIPT SECTION -->
         <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
             <label style="display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; font-size: 1.1rem;">
                 <input type="checkbox" id="receiptCheckbox" onchange="toggleEmailInput()" style="width: 20px; height: 20px; margin-right: 10px;">
@@ -286,7 +283,6 @@
             </label>
             <input type="email" id="customerEmail" class="modal-input" placeholder="Enter your email address" style="display: none; width: 90%;">
         </div>
-        <!-- --------------------------- -->
 
         <div style="margin-top: 15px; background: #222; padding: 15px; border-radius: 10px; text-align: right;">
             <div>Subtotal: $<span id="displaySubtotal">0.00</span></div>
@@ -304,62 +300,212 @@
     </div>
 
     <script>
+        // System Config
+        const TAX_RATE = 0.08; 
+        const IDLE_TIMEOUT = 15000; // Time in MS before ads start (15 seconds for testing)
+        const AD_ROTATION_SPEED = 8000; // Time in MS per ad (8 seconds)
+
+        // Application State
+        let adTimer;
+        let adInterval;
+        let currentOrder = {};
+        let allProducts = [];
+        let adLotteryHat = [];
+
+        // Temporary Ad Database (Will be replaced by ads.json fetch)
+        const adDatabase = [
+            { id: "ad1", src: "https://via.placeholder.com/800x1200/FF5733/FFFFFF?text=Premium+Ad+(Tier+3)", tier: 3 },
+            { id: "ad2", src: "https://via.placeholder.com/800x1200/33C1FF/FFFFFF?text=Standard+Ad+(Tier+1)", tier: 1 },
+            { id: "ad3", src: "https://via.placeholder.com/800x1200/33FF57/000000?text=Standard+Ad+(Tier+1)", tier: 1 }
+        ];
+
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
             return true;
         };
 
-        const TAX_RATE = 0.08; 
-        let idleTimer;
-        let allProducts = [];
-        let currentOrder = {};
+        // DOOH Ad Screensaver Logic
+        function buildAdLottery() {
+            adLotteryHat = [];
+            adDatabase.forEach(ad => {
+                for (let i = 0; i < ad.tier; i++) {
+                    adLotteryHat.push(ad);
+                }
+            });
+        }
 
-        // --- NEW EMAIL/SERIAL FUNCTIONS ---
+        function showNextAd() {
+            if (adLotteryHat.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * adLotteryHat.length);
+            const selectedAd = adLotteryHat[randomIndex];
+            document.getElementById('current-ad-image').src = selectedAd.src;
+            console.log("Playing Ad Impression:", selectedAd.id);
+        }
+
+        function resetTimer() {
+            clearTimeout(adTimer);
+            wakeUpKiosk();
+            adTimer = setTimeout(() => {
+                startScreensaver();
+            }, IDLE_TIMEOUT);
+        }
+
+        function startScreensaver() {
+            closeModal(); 
+            closeAlert();
+            document.getElementById('ad-screensaver').style.display = 'flex';
+            showNextAd();
+            adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
+        }
+
+        function wakeUpKiosk() {
+            document.getElementById('ad-screensaver').style.display = 'none';
+            clearInterval(adInterval);
+        }
+
+        document.addEventListener('touchstart', resetTimer);
+        document.addEventListener('mousedown', resetTimer);
+
+        // Core UI Logic
         function toggleEmailInput() {
             const isChecked = document.getElementById('receiptCheckbox').checked;
             document.getElementById('customerEmail').style.display = isChecked ? 'block' : 'none';
         }
 
+        function toggleGA() {
+            const isGA = document.getElementById('gaCheckbox').checked;
+            document.getElementById('seatFields').style.display = isGA ? 'none' : 'block';
+        }
+
+        function showCustomAlert(message) {
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('customAlert').style.display = 'block';
+        }
+
+        function closeAlert() {
+            document.getElementById('customAlert').style.display = 'none';
+            resetTimer(); 
+        }
+
+        function closeModal() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
+
+        function buyProduct(name) {
+            currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
+            document.getElementById('modalTitle').innerText = name;
+
+            const subtotal = parseFloat(currentOrder.price); 
+            const taxAmount = subtotal * TAX_RATE;
+            const finalTotal = subtotal + taxAmount;
+
+            currentOrder.finalTotal = finalTotal;
+
+            document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('displayTax').innerText = taxAmount.toFixed(2);
+            document.getElementById('displayTotal').innerText = finalTotal.toFixed(2);
+
+            document.getElementById('gaCheckbox').checked = false;
+            toggleGA();
+
+            document.getElementById('receiptCheckbox').checked = false;
+            document.getElementById('customerEmail').value = '';
+            toggleEmailInput();
+
+            document.getElementById('orderModal').style.display = 'block';
+            document.getElementById('shippingFields').style.display = (subtotal > 10) ? 'block' : 'none';
+            resetTimer(); 
+        }
+
+        // Receipt Generation & Cloudflare Handoff
         function generateSerialNumber() {
             const now = new Date();
             const start = new Date(now.getFullYear(), 0, 0);
             const diff = now - start;
             const oneDay = 1000 * 60 * 60 * 24;
             const dayOfYear = Math.floor(diff / oneDay).toString().padStart(3, '0');
-            
+
             const year = now.getFullYear().toString().slice(-2);
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
-            
+
             return `${dayOfYear}${year}${hours}${minutes}`;
         }
 
- async function sendDigitalReceipt(customerEmail, finalTotal, serialNumber) {
-    // Pointing directly to your secure Cloudflare Bouncer
-    const url = "https://stubstation-mailer.brettfell.workers.dev";
+        async function sendDigitalReceipt(customerEmail, finalTotal, serialNumber) {
+            const url = "https://stubstation-mailer.brettfell.workers.dev";
+            const payload = {
+                customerEmail: customerEmail,
+                finalTotal: finalTotal,
+                serialNumber: serialNumber
+            };
 
-    // We only send the raw data; the Bouncer builds the actual email
-    const payload = {
-        customerEmail: customerEmail,
-        finalTotal: finalTotal,
-        serialNumber: serialNumber
-    };
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Receipt securely handed off to Cloudflare!");
+            } catch (error) {
+                console.error("Failed to hand off receipt:", error);
+            }
+        }
 
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        console.log("Receipt securely handed off to Cloudflare!");
-    } catch (error) {
-        console.error("Failed to hand off receipt:", error);
-    }
-}
+        // Processing & API Routing
+        function processOrder() {
+            const isGA = document.getElementById('gaCheckbox').checked;
+            const row = document.getElementById('rowInput').value.trim();
+            const seat = document.getElementById('seatInput').value.trim();
 
-        // ----------------------------------
+            if (!isGA && (row === "" || seat === "")) {
+                showCustomAlert("Please enter your Row and Seat, or select General Admission.");
+                return; 
+            }
+
+            if (parseFloat(currentOrder.price) > 10) {
+                const sName = document.getElementById('shippingName').value.trim();
+                const sAddr = document.getElementById('shippingAddress').value.trim();
+                if (sName === "" || sAddr === "") {
+                    showCustomAlert("Please fill out your shipping information for the display case.");
+                    return;
+                }
+            }
+
+            if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
+                showCustomAlert("System loading, please wait a moment.");
+                return;
+            }
+
+            const isReceiptChecked = document.getElementById('receiptCheckbox').checked;
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const serialNumber = generateSerialNumber(); 
+
+            localStorage.setItem('pendingWantsReceipt', isReceiptChecked);
+            localStorage.setItem('pendingEmail', customerEmail);
+            localStorage.setItem('pendingSerial', serialNumber);
+            localStorage.setItem('pendingTotal', currentOrder.finalTotal.toFixed(2));
+
+            const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
+            const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
+            const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
+
+            const squareIntent = 
+                `intent:#Intent;` +
+                `action=com.squareup.pos.action.CHARGE;` +
+                `package=com.squareup;` +
+                `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
+                `S.com.squareup.pos.CLIENT_ID=${appId};` +
+                `S.com.squareup.pos.API_VERSION=v2.0;` + 
+                `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
+                `S.com.squareup.pos.CURRENCY_CODE=USD;` +
+                `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
+                `B.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
+                `S.browser_fallback_url=${callbackUrl};` +
+                `end`;
+
+            window.location.href = squareIntent;
+        }
 
         async function loadConfig() {
             try {
@@ -395,113 +541,36 @@
             }
         }
 
-        function showCustomAlert(message) {
-            document.getElementById('alertMessage').innerText = message;
-            document.getElementById('customAlert').style.display = 'block';
-        }
+        function startKiosk() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch((e) => console.log("Fullscreen blocked by OS"));
+            }
 
-        function closeAlert() {
-            document.getElementById('customAlert').style.display = 'none';
-            resetTimer(); 
-        }
-
-        function toggleGA() {
-            const isGA = document.getElementById('gaCheckbox').checked;
-            document.getElementById('seatFields').style.display = isGA ? 'none' : 'block';
-        }
-
-        function buyProduct(name) {
-            currentOrder = allProducts.find(p => p.name === name) || {name: name, price: 5};
-            document.getElementById('modalTitle').innerText = name;
-
-            const subtotal = parseFloat(currentOrder.price); 
-            const taxAmount = subtotal * TAX_RATE;
-            const finalTotal = subtotal + taxAmount;
-
-            currentOrder.finalTotal = finalTotal;
-
-            document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
-            document.getElementById('displayTax').innerText = taxAmount.toFixed(2);
-            document.getElementById('displayTotal').innerText = finalTotal.toFixed(2);
-
+            document.getElementById('rowInput').value = '';
+            document.getElementById('seatInput').value = '';
+            document.getElementById('shippingName').value = '';
+            document.getElementById('shippingAddress').value = '';
             document.getElementById('gaCheckbox').checked = false;
-            toggleGA();
-
-            // Reset email fields for new customer
             document.getElementById('receiptCheckbox').checked = false;
             document.getElementById('customerEmail').value = '';
+
+            toggleGA();
             toggleEmailInput();
 
-            document.getElementById('orderModal').style.display = 'block';
-            document.getElementById('shippingFields').style.display = (subtotal > 10) ? 'block' : 'none';
-            resetTimer(); 
+            const curtain = document.getElementById('attract-screen');
+            curtain.style.opacity = '0';
+            setTimeout(() => { curtain.style.display = 'none'; }, 500);
+            
+            resetTimer();
         }
 
-        function closeModal() {
-            document.getElementById('orderModal').style.display = 'none';
-        }
-
-        function processOrder() {
-            const isGA = document.getElementById('gaCheckbox').checked;
-            const row = document.getElementById('rowInput').value.trim();
-            const seat = document.getElementById('seatInput').value.trim();
-
-            if (!isGA && (row === "" || seat === "")) {
-                showCustomAlert("Please enter your Row and Seat, or select General Admission.");
-                return; 
-            }
-
-            if (parseFloat(currentOrder.price) > 10) {
-                const sName = document.getElementById('shippingName').value.trim();
-                const sAddr = document.getElementById('shippingAddress').value.trim();
-                if (sName === "" || sAddr === "") {
-                    showCustomAlert("Please fill out your shipping information for the display case.");
-                    return;
-                }
-            }
-
-            if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
-                showCustomAlert("System loading, please wait a moment.");
-                return;
-            }
-
-            // --- SAVE RECEIPT DATA BEFORE LEAVING FOR SQUARE ---
-            const isReceiptChecked = document.getElementById('receiptCheckbox').checked;
-            const customerEmail = document.getElementById('customerEmail').value.trim();
-            const serialNumber = generateSerialNumber(); 
-
-            localStorage.setItem('pendingWantsReceipt', isReceiptChecked);
-            localStorage.setItem('pendingEmail', customerEmail);
-            localStorage.setItem('pendingSerial', serialNumber);
-            localStorage.setItem('pendingTotal', currentOrder.finalTotal.toFixed(2));
-            // --------------------------------------------------
-
-            const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
-            const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
-            const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
-
-
-            const squareIntent = 
-                `intent:#Intent;` +
-                `action=com.squareup.pos.action.CHARGE;` +
-                `package=com.squareup;` +
-                `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
-                `S.com.squareup.pos.CLIENT_ID=${appId};` +
-                `S.com.squareup.pos.API_VERSION=v2.0;` + 
-                `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
-                `S.com.squareup.pos.CURRENCY_CODE=USD;` +
-                `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
-                `B.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
-                `S.browser_fallback_url=${callbackUrl};` +
-                `end`;
-
-            window.location.href = squareIntent;
-        }
-
+        // Initialization
         window.onload = () => {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js');
             }
+
+            buildAdLottery();
 
             window.history.pushState(null, "", window.location.href);
             window.onpopstate = function() {
@@ -515,7 +584,6 @@
             const squareChannel = new BroadcastChannel('square_payment_channel');
 
             if (hasTransaction) {
-                // --- FIRE EMAIL IF APPLICABLE ---
                 const wantsReceipt = localStorage.getItem('pendingWantsReceipt') === 'true';
                 const savedEmail = localStorage.getItem('pendingEmail');
                 const savedSerial = localStorage.getItem('pendingSerial');
@@ -525,12 +593,10 @@
                     sendDigitalReceipt(savedEmail, savedTotal, savedSerial);
                 }
 
-                // Clean up sticky note
                 localStorage.removeItem('pendingWantsReceipt');
                 localStorage.removeItem('pendingEmail');
                 localStorage.removeItem('pendingSerial');
                 localStorage.removeItem('pendingTotal');
-                // --------------------------------
 
                 if (!isStandalone) {
                     squareChannel.postMessage('PAYMENT_SUCCESS');
@@ -574,37 +640,6 @@
                 loadProducts();
             }
         };
-
-        function startKiosk() {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch((e) => console.log("Fullscreen blocked by OS"));
-            }
-
-            document.getElementById('rowInput').value = '';
-            document.getElementById('seatInput').value = '';
-            document.getElementById('shippingName').value = '';
-            document.getElementById('shippingAddress').value = '';
-            document.getElementById('gaCheckbox').checked = false;
-            
-            // Reset email fields on fresh start
-            document.getElementById('receiptCheckbox').checked = false;
-            document.getElementById('customerEmail').value = '';
-            
-            toggleGA();
-            toggleEmailInput();
-
-            const curtain = document.getElementById('attract-screen');
-            curtain.style.opacity = '0';
-            setTimeout(() => { curtain.style.display = 'none'; }, 500);
-            resetTimer();
-        }
-
-        function resetTimer() {
-            clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => { 
-                window.location.href = window.location.pathname; 
-            }, 60000); 
-        }
     </script>
 </body>
 </html>
