@@ -344,26 +344,35 @@ const adDatabase = [
             console.log("Playing Ad Impression:", selectedAd.id);
         }
 
-        function resetTimer() {
-            clearTimeout(adTimer);
-            wakeUpKiosk();
-            adTimer = setTimeout(() => {
-                startScreensaver();
-            }, IDLE_TIMEOUT);
-        }
+function resetTimer() {
+    clearTimeout(adTimer);
+    // We only restart the countdown here, we don't force a wake-up
+    adTimer = setTimeout(() => {
+        startScreensaver();
+    }, IDLE_TIMEOUT);
+}
 
-        function startScreensaver() {
-            closeModal(); 
-            closeAlert();
-            document.getElementById('ad-screensaver').style.display = 'flex';
-            showNextAd();
-            adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
-        }
+function startScreensaver() {
+    closeModal(); 
+    closeAlert();
+    document.getElementById('ad-screensaver').style.display = 'flex';
+    showNextAd();
+    adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
+}
 
-        function wakeUpKiosk() {
-            document.getElementById('ad-screensaver').style.display = 'none';
-            clearInterval(adInterval);
-        }
+function wakeUpKiosk(event) {
+    // The magic shield to stop "Ghost Clicks"
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    document.getElementById('ad-screensaver').style.display = 'none';
+    clearInterval(adInterval);
+    
+    // Now that we are awake, start counting down 15 seconds again
+    resetTimer(); 
+}
 
         document.addEventListener('touchstart', resetTimer);
         document.addEventListener('mousedown', resetTimer);
