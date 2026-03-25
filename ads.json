@@ -1,0 +1,14 @@
+[
+    { 
+        "id": "promo_retro", 
+        "type": "image", 
+        "src": "menuBackground1.jpg", 
+        "tier": 3 
+    },
+    { 
+        "id": "promo_video_test", 
+        "type": "video", 
+        "src": "https://www.w3schools.com/html/mov_bbb.mp4", 
+        "tier": 1 
+    }
+]
