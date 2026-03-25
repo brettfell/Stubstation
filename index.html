@@ -301,7 +301,7 @@
         <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid orange; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px;"></div>
     </div>
 
-    <script>
+        <script>
         // System Config
         const TAX_RATE = 0.08; 
         const IDLE_TIMEOUT = 15000; // Time in MS before ads start (15 seconds for testing)
@@ -313,22 +313,24 @@
         let currentOrder = {};
         let allProducts = [];
         let adLotteryHat = [];
-
-        // Temporary Ad Database (Will be replaced by ads.json fetch)
-        // Using your existing local background image to test the rendering!
-const adDatabase = [
-    { id: "ad1", src: "menuBackground1.jpg", tier: 3 },
-    { id: "ad2", src: "menuBackground1.jpg", tier: 1 },
-    { id: "ad3", src: "menuBackground1.jpg", tier: 1 }
-];
-
+        let adDatabase = []; // Starts empty, waits for ads.json!
 
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
             return true;
         };
 
-        // DOOH Ad Screensaver Logic
+        // --- DOOH Ad Screensaver Logic ---
+        async function loadAds() {
+            try {
+                const response = await fetch('ads.json');
+                adDatabase = await response.json();
+                buildAdLottery();
+            } catch (error) {
+                console.warn("Failed to load ads.json, running without ads.");
+            }
+        }
+
         function buildAdLottery() {
             adLotteryHat = [];
             adDatabase.forEach(ad => {
@@ -340,60 +342,66 @@ const adDatabase = [
 
         function showNextAd() {
             if (adLotteryHat.length === 0) return;
+            
             const randomIndex = Math.floor(Math.random() * adLotteryHat.length);
             const selectedAd = adLotteryHat[randomIndex];
-            document.getElementById('current-ad-image').src = selectedAd.src;
+            
+            const imgElement = document.getElementById('current-ad-image');
+            const vidElement = document.getElementById('current-ad-video');
+
+            // Toggle between Image and Video based on the JSON "type"
+            if (selectedAd.type === 'video') {
+                imgElement.style.display = 'none';
+                vidElement.src = selectedAd.src;
+                vidElement.style.display = 'block';
+                vidElement.play();
+            } else {
+                vidElement.style.display = 'none';
+                vidElement.pause();
+                imgElement.src = selectedAd.src;
+                imgElement.style.display = 'block';
+            }
+            
             console.log("Playing Ad Impression:", selectedAd.id);
         }
 
-// --- UNIFIED TIMER & KIOSK FLOW ---
+        // --- UNIFIED TIMER & KIOSK FLOW ---
+        function resetTimer() {
+            clearTimeout(adTimer);
+            adTimer = setTimeout(() => {
+                startScreensaver();
+            }, IDLE_TIMEOUT);
+        }
 
-function resetTimer() {
-    clearTimeout(adTimer);
-    // One master clock. If untouched, trigger the reset and show ads.
-    adTimer = setTimeout(() => {
-        startScreensaver();
-    }, IDLE_TIMEOUT);
-}
+        function startScreensaver() {
+            closeModal(); 
+            closeAlert();
 
-function startScreensaver() {
-    // 1. Cancel any half-finished orders and hide modals
-    closeModal(); 
-    closeAlert();
-    
-    // 2. Reset the underlying app back to the "Curtain" screen for the next person!
-    const curtain = document.getElementById('attract-screen');
-    curtain.style.display = 'flex';
-    curtain.style.opacity = '1';
-    
-    // 3. Drop the Ad Screensaver over top of the newly reset curtain
-    document.getElementById('ad-screensaver').style.display = 'flex';
-    
-    // 4. Fire up the ad rotation
-    showNextAd();
-    adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
-}
+            const curtain = document.getElementById('attract-screen');
+            curtain.style.display = 'flex';
+            curtain.style.opacity = '1';
 
-function wakeUpKiosk(event) {
-    // Shield against the Ghost Click
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
+            document.getElementById('ad-screensaver').style.display = 'flex';
 
-    // Hide the ads, which beautifully reveals the Curtain screen underneath!
-    document.getElementById('ad-screensaver').style.display = 'none';
-    clearInterval(adInterval);
-    
-    // Start counting down again
-    resetTimer(); 
-}
+            showNextAd();
+            adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
+        }
 
+        function wakeUpKiosk(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            document.getElementById('ad-screensaver').style.display = 'none';
+            clearInterval(adInterval);
+            resetTimer(); 
+        }
 
         document.addEventListener('touchstart', resetTimer);
         document.addEventListener('mousedown', resetTimer);
 
-        // Core UI Logic
+        // --- Core UI Logic ---
         function toggleEmailInput() {
             const isChecked = document.getElementById('receiptCheckbox').checked;
             document.getElementById('customerEmail').style.display = isChecked ? 'block' : 'none';
@@ -444,7 +452,7 @@ function wakeUpKiosk(event) {
             resetTimer(); 
         }
 
-        // Receipt Generation & Cloudflare Handoff
+        // --- Receipt Generation & Cloudflare Handoff ---
         function generateSerialNumber() {
             const now = new Date();
             const start = new Date(now.getFullYear(), 0, 0);
@@ -479,7 +487,7 @@ function wakeUpKiosk(event) {
             }
         }
 
-        // Processing & API Routing
+        // --- Processing & API Routing ---
         function processOrder() {
             const isGA = document.getElementById('gaCheckbox').checked;
             const row = document.getElementById('rowInput').value.trim();
@@ -587,17 +595,15 @@ function wakeUpKiosk(event) {
             const curtain = document.getElementById('attract-screen');
             curtain.style.opacity = '0';
             setTimeout(() => { curtain.style.display = 'none'; }, 500);
-            
+
             resetTimer();
         }
 
-        // Initialization
+        // --- Initialization ---
         window.onload = () => {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js');
             }
-
-            buildAdLottery();
 
             window.history.pushState(null, "", window.location.href);
             window.onpopstate = function() {
@@ -663,12 +669,14 @@ function wakeUpKiosk(event) {
                     }
                 };
 
+                // Boot Sequence
                 loadConfig();
                 loadProducts();
-                loadAds();
-                resetTimer(); 
+                loadAds();     // Fetches ads.json, builds lottery hat
+                resetTimer();  // Starts the idle countdown clock
             }
         };
     </script>
+
 </body>
 </html>
