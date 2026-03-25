@@ -224,9 +224,11 @@
     <div id="version-marker">v3.1 - DOOH Ad Engine</div>
 
     <div id="ad-screensaver" onmousedown="wakeUpKiosk(event)" ontouchstart="wakeUpKiosk(event)">
-    <img id="current-ad-image" src="" alt="Advertisement">
+    <img id="current-ad-image" src="" alt="Advertisement" style="display: none;">
+    <video id="current-ad-video" src="" muted loop playsinline style="display: none; max-width: 100%; max-height: 100vh; object-fit: contain;"></video>
     <div id="touch-to-start-overlay">TOUCH ANYWHERE TO START</div>
 </div>
+
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
