@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StubStation - The Original Concert Souvenir</title>
+    
     <style>
+        /* This magic rule stops borders and padding from stretching the screen */
+        * {
+            box-sizing: border-box; 
+        }
         body {
             font-family: sans-serif;
             background-color: #000;
@@ -13,6 +18,7 @@
             padding: 0;
             line-height: 1.6;
             text-align: center;
+            overflow-x: hidden; /* Absolutely prevents horizontal scrolling */
         }
         header {
             padding: 50px 20px 20px;
@@ -36,12 +42,13 @@
             padding: 20px;
         }
         .mockup-img {
-            width: 100%;
-            max-width: 500px;
+            width: 90%; /* Give it a little breathing room on phone screens */
+            max-width: 450px; /* Don't let it get too massive on desktop */
+            height: auto; /* Keeps the image from stretching weirdly */
             border-radius: 15px;
             border: 2px solid #333;
-            margin: 20px 0;
-            object-fit: cover;
+            margin: 20px auto; 
+            display: block; /* Ensures the image stays perfectly centered */
         }
         .demo-btn {
             display: inline-block;
@@ -60,14 +67,14 @@
         }
         .contact-section {
             background: #1a1a1a;
-            padding: 40px;
+            padding: 30px;
             border-radius: 20px;
             border: 2px solid #333;
             margin-top: 40px;
             text-align: left;
         }
         .contact-block {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         .contact-block:last-child {
             margin-bottom: 0;
@@ -85,11 +92,14 @@
             color: #4CAF50;
             text-decoration: none;
             font-weight: bold;
+            word-wrap: break-word; /* Prevents long emails from breaking the layout */
         }
         a:hover {
             text-decoration: underline;
         }
     </style>
+
+
 </head>
 <body>
 
