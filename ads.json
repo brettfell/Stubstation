@@ -1,14 +1,33 @@
 [
     { 
-        "id": "promo_retro", 
+        "id": "promo_1", 
         "type": "image", 
-        "src": "menuBackground1.jpg", 
-        "tier": 3 
+        "src": "ads2/guestBook.png", 
+        "tier": 1
     },
     { 
-        "id": "promo_video_test", 
-        "type": "video", 
-        "src": "https://www.w3schools.com/html/mov_bbb.mp4", 
+        "id": "promo_2", 
+        "type": "image", 
+        "src": "ads2/Ticket.png",
         "tier": 1 
+    },
+    { 
+        "id": "promo_3", 
+        "type": "image", 
+        "src": "ads2/ssAd1.png", 
+        "tier": 1
+    },
+    { 
+        "id": "promo_4", 
+        "type": "image", 
+        "src": "ads2/ssAd2.jpg",
+        "tier": 1
+    },
+    { 
+        "id": "promo_5", 
+        "type": "image", 
+        "src": "ads2/saAd3.jpg", 
+        "tier": 1
     }
+     
 ]
