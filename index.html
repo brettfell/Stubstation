@@ -374,18 +374,26 @@
         }
 
         function startScreensaver() {
-            closeModal(); 
-            closeAlert();
+    // --- THE FIX: Kill any overlapping rotation clocks first! ---
+    clearInterval(adInterval); 
+    
+    // 1. Cancel any half-finished orders and hide modals
+    closeModal(); 
+    closeAlert();
 
-            const curtain = document.getElementById('attract-screen');
-            curtain.style.display = 'flex';
-            curtain.style.opacity = '1';
+    // 2. Reset the underlying app back to the "Curtain" screen
+    const curtain = document.getElementById('attract-screen');
+    curtain.style.display = 'flex';
+    curtain.style.opacity = '1';
 
-            document.getElementById('ad-screensaver').style.display = 'flex';
+    // 3. Drop the Ad Screensaver over top of the newly reset curtain
+    document.getElementById('ad-screensaver').style.display = 'flex';
 
-            showNextAd();
-            adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
-        }
+    // 4. Fire up the fresh ad rotation
+    showNextAd();
+    adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
+}
+
 
         function wakeUpKiosk(event) {
             if (event) {
