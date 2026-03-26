@@ -141,11 +141,9 @@
             width: 85%;
             max-width: 450px;
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
-            /* NEW: Allows scrolling when the keyboard pops up */
             max-height: 80vh; 
             overflow-y: auto; 
         }
-
 
         .modal-input {
             width: 90%;
@@ -225,14 +223,13 @@
 </head>
 <body>
 
-    <div id="version-marker">v3.1 - DOOH Ad Engine</div>
+    <div id="version-marker">v3.2 - Data Collection Upgrades</div>
 
     <div id="ad-screensaver" onmousedown="wakeUpKiosk(event)" ontouchstart="wakeUpKiosk(event)">
-    <img id="current-ad-image" src="" alt="Advertisement" style="display: none;">
-    <video id="current-ad-video" src="" muted loop playsinline style="display: none; max-width: 100%; max-height: 100vh; object-fit: contain;"></video>
-    <div id="touch-to-start-overlay">TOUCH ANYWHERE TO START</div>
-</div>
-
+        <img id="current-ad-image" src="" alt="Advertisement" style="display: none;">
+        <video id="current-ad-video" src="" muted loop playsinline style="display: none; max-width: 100%; max-height: 100vh; object-fit: contain;"></video>
+        <div id="touch-to-start-overlay">TOUCH ANYWHERE TO START</div>
+    </div>
 
     <div id="attract-screen" onclick="startKiosk()">
         <img src="menuBackground1.jpg" style="max-width: 70%; border-radius: 20px;" onerror="this.style.display='none'">
@@ -263,7 +260,7 @@
         <button onclick="closeAlert()" style="background: red; color: white; padding: 15px 30px; font-weight: bold; border: none; border-radius: 10px; font-size: 1.2rem; cursor: pointer; margin-top: 20px;">Got it!</button>
     </div>
 
-        <div id="orderModal">
+    <div id="orderModal">
         <h2 id="modalTitle" style="color:orange; margin-top:0;">Ticket Details</h2>
 
         <label style="display: flex; align-items: center; margin-bottom: 15px; cursor: pointer; font-size: 1.1rem;">
@@ -272,22 +269,25 @@
         </label>
 
         <div id="seatFields">
-            <input type="text" id="rowInput" class="modal-input" placeholder="Row (e.g., A)" autocomplete="off" autocorrect="off" spellcheck="false">
-            <input type="text" id="seatInput" class="modal-input" placeholder="Seat (e.g., 12)" autocomplete="off" autocorrect="off" spellcheck="false">
+            <input type="text" id="rowInput" class="modal-input" placeholder="Row (e.g., A)" autocomplete="nope" autocorrect="off" spellcheck="false">
+            <input type="text" id="seatInput" class="modal-input" placeholder="Seat (e.g., 12)" autocomplete="nope" autocorrect="off" spellcheck="false">
+        </div>
+
+        <div id="contactFields" style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
+            <h3 style="font-size:1rem; margin-bottom:10px;">Contact Information (Required)</h3>
+            <input type="email" id="customerEmail" class="modal-input" placeholder="Email Address" autocomplete="nope" autocorrect="off" spellcheck="false">
         </div>
 
         <div id="shippingFields" style="display:none; border-top: 1px solid #444; margin-top:15px; padding-top:15px;">
             <h3 style="font-size:1rem; margin-bottom:10px;">Shipping for Display Case:</h3>
-            <input type="text" id="shippingName" class="modal-input" placeholder="Full Name" autocomplete="off" autocorrect="off" spellcheck="false">
-            <input type="text" id="shippingAddress" class="modal-input" placeholder="Street, City, Zip" autocomplete="off" autocorrect="off" spellcheck="false">
-        </div>
-
-        <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
-            <label style="display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; font-size: 1.1rem;">
-                <input type="checkbox" id="receiptCheckbox" onchange="toggleEmailInput()" style="width: 20px; height: 20px; margin-right: 10px;">
-                Send me a digital receipt
-            </label>
-            <input type="email" id="customerEmail" class="modal-input" placeholder="Enter your email address" style="display: none; width: 90%;" autocomplete="off" autocorrect="off" spellcheck="false">
+            <input type="text" id="shippingName" class="modal-input" placeholder="Full Name" autocomplete="nope" autocorrect="off" spellcheck="false">
+            <input type="text" id="shippingStreet" class="modal-input" placeholder="Street Address" autocomplete="nope" autocorrect="off" spellcheck="false">
+            
+            <div style="display: flex; justify-content: space-between; width: 90%; margin: 10px auto;">
+                <input type="text" id="shippingCity" class="modal-input" placeholder="City" style="width: 48%; margin: 0;" autocomplete="nope" autocorrect="off" spellcheck="false">
+                <input type="text" id="shippingState" class="modal-input" placeholder="State" style="width: 22%; margin: 0;" autocomplete="nope" autocorrect="off" spellcheck="false">
+                <input type="text" id="shippingZip" class="modal-input" placeholder="Zip" style="width: 22%; margin: 0;" autocomplete="nope" autocorrect="off" spellcheck="false">
+            </div>
         </div>
 
         <div style="margin-top: 15px; background: #222; padding: 15px; border-radius: 10px; text-align: right;">
@@ -300,17 +300,16 @@
         <button onclick="closeModal()" style="background:transparent; color:#888; border:none; margin-top:10px; width:100%; cursor:pointer;">Cancel</button>
     </div>
 
-
     <div id="printingScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10003; flex-direction: column; justify-content: center; align-items: center;">
         <h1 style="color: orange; font-size: 3rem; text-align: center;">PRINTING YOUR<br>SOUVENIR...</h1>
         <div class="spinner" style="width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid orange; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px;"></div>
     </div>
 
-        <script>
+    <script>
         // System Config
         const TAX_RATE = 0.08; 
-        const IDLE_TIMEOUT = 15000; // Time in MS before ads start (15 seconds for testing)
-        const AD_ROTATION_SPEED = 8000; // Time in MS per ad (8 seconds)
+        const IDLE_TIMEOUT = 15000; 
+        const AD_ROTATION_SPEED = 8000; 
 
         // Application State
         let adTimer;
@@ -320,7 +319,6 @@
         let adLotteryHat = [];
         let adDatabase = [];
         let lastPlayedAdId = null;
-
 
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
@@ -347,22 +345,14 @@
             });
         }
 
-         function showNextAd() {
+        function showNextAd() {
             if (adLotteryHat.length === 0) return;
-            
-            // 1. Filter out the last played ad so it can't be picked twice in a row
             let availableAds = adLotteryHat.filter(ad => ad.id !== lastPlayedAdId);
-
-            // 2. Safety Fallback: If you only have 1 ad in the whole system, use it anyway to prevent a crash
             if (availableAds.length === 0) {
                 availableAds = adLotteryHat;
             }
-
-            // 3. Draw a random ticket from the newly filtered hat
             const randomIndex = Math.floor(Math.random() * availableAds.length);
             const selectedAd = availableAds[randomIndex];
-            
-            // 4. Update the memory so the system remembers it for next time
             lastPlayedAdId = selectedAd.id;
 
             const imgElement = document.getElementById('current-ad-image');
@@ -379,12 +369,8 @@
                 imgElement.src = selectedAd.src;
                 imgElement.style.display = 'block';
             }
-            
-            console.log("Playing Ad Impression:", selectedAd.id);
         }
 
-
-        // --- UNIFIED TIMER & KIOSK FLOW ---
         function resetTimer() {
             clearTimeout(adTimer);
             adTimer = setTimeout(() => {
@@ -393,33 +379,22 @@
         }
 
         function startScreensaver() {
-    // --- THE FIX: Kill any overlapping rotation clocks first! ---
-    clearInterval(adInterval); 
-
-    // 1. Cancel any half-finished orders and hide modals
-    closeModal(); 
-    closeAlert();
-
-    // 2. Reset the underlying app back to the "Curtain" screen
-    const curtain = document.getElementById('attract-screen');
-    curtain.style.display = 'flex';
-    curtain.style.opacity = '1';
-
-    // 3. Drop the Ad Screensaver over top of the newly reset curtain
-    document.getElementById('ad-screensaver').style.display = 'flex';
-
-    // 4. Fire up the fresh ad rotation
-    showNextAd();
-    adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
-}
-
+            clearInterval(adInterval); 
+            closeModal(); 
+            closeAlert();
+            const curtain = document.getElementById('attract-screen');
+            curtain.style.display = 'flex';
+            curtain.style.opacity = '1';
+            document.getElementById('ad-screensaver').style.display = 'flex';
+            showNextAd();
+            adInterval = setInterval(showNextAd, AD_ROTATION_SPEED); 
+        }
 
         function wakeUpKiosk(event) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
             }
-
             document.getElementById('ad-screensaver').style.display = 'none';
             clearInterval(adInterval);
             resetTimer(); 
@@ -429,11 +404,6 @@
         document.addEventListener('mousedown', resetTimer);
 
         // --- Core UI Logic ---
-        function toggleEmailInput() {
-            const isChecked = document.getElementById('receiptCheckbox').checked;
-            document.getElementById('customerEmail').style.display = isChecked ? 'block' : 'none';
-        }
-
         function toggleGA() {
             const isGA = document.getElementById('gaCheckbox').checked;
             document.getElementById('seatFields').style.display = isGA ? 'none' : 'block';
@@ -460,7 +430,6 @@
             const subtotal = parseFloat(currentOrder.price); 
             const taxAmount = subtotal * TAX_RATE;
             const finalTotal = subtotal + taxAmount;
-
             currentOrder.finalTotal = finalTotal;
 
             document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
@@ -470,9 +439,13 @@
             document.getElementById('gaCheckbox').checked = false;
             toggleGA();
 
-            document.getElementById('receiptCheckbox').checked = false;
+            // Clear out all inputs for the new customer
             document.getElementById('customerEmail').value = '';
-            toggleEmailInput();
+            document.getElementById('shippingName').value = '';
+            document.getElementById('shippingStreet').value = '';
+            document.getElementById('shippingCity').value = '';
+            document.getElementById('shippingState').value = '';
+            document.getElementById('shippingZip').value = '';
 
             document.getElementById('orderModal').style.display = 'block';
             document.getElementById('shippingFields').style.display = (subtotal > 10) ? 'block' : 'none';
@@ -494,12 +467,15 @@
             return `${dayOfYear}${year}${hours}${minutes}`;
         }
 
-        async function sendDigitalReceipt(customerEmail, finalTotal, serialNumber) {
+        async function sendDigitalReceipt(customerEmail, finalTotal, serialNumber, seatData, shippingData) {
             const url = "https://stubstation-mailer.brettfell.workers.dev";
             const payload = {
                 customerEmail: customerEmail,
                 finalTotal: finalTotal,
-                serialNumber: serialNumber
+                serialNumber: serialNumber,
+                seatData: seatData,
+                shippingData: shippingData, 
+                adminEmail: "customerservice@stubstationkiosk.com" 
             };
 
             try {
@@ -508,7 +484,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                console.log("Receipt securely handed off to Cloudflare!");
+                console.log("Receipt and Admin notification securely handed off to Cloudflare!");
             } catch (error) {
                 console.error("Failed to hand off receipt:", error);
             }
@@ -519,19 +495,32 @@
             const isGA = document.getElementById('gaCheckbox').checked;
             const row = document.getElementById('rowInput').value.trim();
             const seat = document.getElementById('seatInput').value.trim();
-
+            
             if (!isGA && (row === "" || seat === "")) {
                 showCustomAlert("Please enter your Row and Seat, or select General Admission.");
                 return; 
             }
 
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            if (!customerEmail.includes('@') || !customerEmail.includes('.')) {
+                showCustomAlert("Please enter a valid email address.");
+                return;
+            }
+
+            let shippingData = null;
             if (parseFloat(currentOrder.price) > 10) {
                 const sName = document.getElementById('shippingName').value.trim();
-                const sAddr = document.getElementById('shippingAddress').value.trim();
-                if (sName === "" || sAddr === "") {
-                    showCustomAlert("Please fill out your shipping information for the display case.");
+                const sStreet = document.getElementById('shippingStreet').value.trim();
+                const sCity = document.getElementById('shippingCity').value.trim();
+                const sState = document.getElementById('shippingState').value.trim();
+                const sZip = document.getElementById('shippingZip').value.trim();
+
+                if (!sName || !sStreet || !sCity || !sState || !sZip) {
+                    showCustomAlert("Please fill out ALL shipping fields to receive your display case.");
                     return;
                 }
+                
+                shippingData = { name: sName, street: sStreet, city: sCity, state: sState, zip: sZip };
             }
 
             if (!window.kioskConfig || !window.kioskConfig.square_app_id) {
@@ -539,32 +528,26 @@
                 return;
             }
 
-            const isReceiptChecked = document.getElementById('receiptCheckbox').checked;
-            const customerEmail = document.getElementById('customerEmail').value.trim();
             const serialNumber = generateSerialNumber(); 
+            let seatData = isGA ? "General Admission" : `Row ${row}, Seat ${seat}`;
 
-            localStorage.setItem('pendingWantsReceipt', isReceiptChecked);
             localStorage.setItem('pendingEmail', customerEmail);
             localStorage.setItem('pendingSerial', serialNumber);
             localStorage.setItem('pendingTotal', currentOrder.finalTotal.toFixed(2));
+            localStorage.setItem('pendingSeat', seatData);
+            localStorage.setItem('pendingShipping', JSON.stringify(shippingData));
 
             const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
             const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
             const callbackUrl = "https://brettfell.github.io/Stubstation/"; 
 
             const squareIntent = 
-                `intent:#Intent;` +
-                `action=com.squareup.pos.action.CHARGE;` +
-                `package=com.squareup;` +
-                `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};` +
-                `S.com.squareup.pos.CLIENT_ID=${appId};` +
-                `S.com.squareup.pos.API_VERSION=v2.0;` + 
-                `i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
+                `intent:#Intent;action=com.squareup.pos.action.CHARGE;package=com.squareup;` +
+                `S.com.squareup.pos.WEB_CALLBACK_URI=${callbackUrl};S.com.squareup.pos.CLIENT_ID=${appId};` +
+                `S.com.squareup.pos.API_VERSION=v2.0;i.com.squareup.pos.TOTAL_AMOUNT=${amountCents};` + 
                 `S.com.squareup.pos.CURRENCY_CODE=USD;` +
                 `S.com.squareup.pos.TENDER_TYPES=com.squareup.pos.TENDER_CARD,com.squareup.pos.TENDER_CASH;` +
-                `B.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;` +
-                `S.browser_fallback_url=${callbackUrl};` +
-                `end`;
+                `B.com.squareup.pos.AUTO_RETURN_AFTER_PAYMENT=true;S.browser_fallback_url=${callbackUrl};end`;
 
             window.location.href = squareIntent;
         }
@@ -610,14 +593,16 @@
 
             document.getElementById('rowInput').value = '';
             document.getElementById('seatInput').value = '';
-            document.getElementById('shippingName').value = '';
-            document.getElementById('shippingAddress').value = '';
             document.getElementById('gaCheckbox').checked = false;
-            document.getElementById('receiptCheckbox').checked = false;
+            
             document.getElementById('customerEmail').value = '';
+            document.getElementById('shippingName').value = '';
+            document.getElementById('shippingStreet').value = '';
+            document.getElementById('shippingCity').value = '';
+            document.getElementById('shippingState').value = '';
+            document.getElementById('shippingZip').value = '';
 
             toggleGA();
-            toggleEmailInput();
 
             const curtain = document.getElementById('attract-screen');
             curtain.style.opacity = '0';
@@ -625,20 +610,21 @@
 
             resetTimer();
         }
-        // --- Keyboard Auto-Scroll Fix ---
-        document.querySelectorAll('.modal-input').forEach(input => {
-            input.addEventListener('focus', function() {
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300); // Waits 300ms for the keyboard to finish sliding up
-            });
-        });
 
         // --- Initialization ---
         window.onload = () => {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js');
             }
+
+            // Keyboard Auto-Scroll Fix
+            document.querySelectorAll('.modal-input').forEach(input => {
+                input.addEventListener('focus', function() {
+                    setTimeout(() => {
+                        this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300); 
+                });
+            });
 
             window.history.pushState(null, "", window.location.href);
             window.onpopstate = function() {
@@ -652,19 +638,21 @@
             const squareChannel = new BroadcastChannel('square_payment_channel');
 
             if (hasTransaction) {
-                const wantsReceipt = localStorage.getItem('pendingWantsReceipt') === 'true';
                 const savedEmail = localStorage.getItem('pendingEmail');
                 const savedSerial = localStorage.getItem('pendingSerial');
                 const savedTotal = localStorage.getItem('pendingTotal');
+                const savedSeat = localStorage.getItem('pendingSeat');
+                const savedShipping = JSON.parse(localStorage.getItem('pendingShipping'));
 
-                if (wantsReceipt && savedEmail) {
-                    sendDigitalReceipt(savedEmail, savedTotal, savedSerial);
+                if (savedEmail) {
+                    sendDigitalReceipt(savedEmail, savedTotal, savedSerial, savedSeat, savedShipping);
                 }
 
-                localStorage.removeItem('pendingWantsReceipt');
                 localStorage.removeItem('pendingEmail');
                 localStorage.removeItem('pendingSerial');
                 localStorage.removeItem('pendingTotal');
+                localStorage.removeItem('pendingSeat');
+                localStorage.removeItem('pendingShipping');
 
                 if (!isStandalone) {
                     squareChannel.postMessage('PAYMENT_SUCCESS');
@@ -707,11 +695,10 @@
                 // Boot Sequence
                 loadConfig();
                 loadProducts();
-                loadAds();     // Fetches ads.json, builds lottery hat
-                resetTimer();  // Starts the idle countdown clock
+                loadAds();     
+                resetTimer();  
             }
         };
     </script>
-
 </body>
 </html>
