@@ -625,6 +625,14 @@
 
             resetTimer();
         }
+        // --- Keyboard Auto-Scroll Fix ---
+        document.querySelectorAll('.modal-input').forEach(input => {
+            input.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300); // Waits 300ms for the keyboard to finish sliding up
+            });
+        });
 
         // --- Initialization ---
         window.onload = () => {
