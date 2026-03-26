@@ -313,7 +313,9 @@
         let currentOrder = {};
         let allProducts = [];
         let adLotteryHat = [];
-        let adDatabase = []; // Starts empty, waits for ads.json!
+        let adDatabase = [];
+        let lastPlayedAdId = null;
+
 
         window.onerror = function(message, source, lineno) {
             alert("System Error: " + message + " (Line: " + lineno + ")");
@@ -340,16 +342,27 @@
             });
         }
 
-        function showNextAd() {
+         function showNextAd() {
             if (adLotteryHat.length === 0) return;
+            
+            // 1. Filter out the last played ad so it can't be picked twice in a row
+            let availableAds = adLotteryHat.filter(ad => ad.id !== lastPlayedAdId);
 
-            const randomIndex = Math.floor(Math.random() * adLotteryHat.length);
-            const selectedAd = adLotteryHat[randomIndex];
+            // 2. Safety Fallback: If you only have 1 ad in the whole system, use it anyway to prevent a crash
+            if (availableAds.length === 0) {
+                availableAds = adLotteryHat;
+            }
+
+            // 3. Draw a random ticket from the newly filtered hat
+            const randomIndex = Math.floor(Math.random() * availableAds.length);
+            const selectedAd = availableAds[randomIndex];
+            
+            // 4. Update the memory so the system remembers it for next time
+            lastPlayedAdId = selectedAd.id;
 
             const imgElement = document.getElementById('current-ad-image');
             const vidElement = document.getElementById('current-ad-video');
 
-            // Toggle between Image and Video based on the JSON "type"
             if (selectedAd.type === 'video') {
                 imgElement.style.display = 'none';
                 vidElement.src = selectedAd.src;
@@ -361,9 +374,10 @@
                 imgElement.src = selectedAd.src;
                 imgElement.style.display = 'block';
             }
-
+            
             console.log("Playing Ad Impression:", selectedAd.id);
         }
+
 
         // --- UNIFIED TIMER & KIOSK FLOW ---
         function resetTimer() {
