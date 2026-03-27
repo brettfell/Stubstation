@@ -539,7 +539,9 @@
 
             const appId = String(window.kioskConfig.square_app_id).replace(/(\r\n|\n|\r)/gm, "").trim();
             const amountCents = parseInt(Math.round(currentOrder.finalTotal * 100));
-            const callbackUrl = "https://brettfell.github.io/Stubstation/kiosk.html"; 
+      
+const callbackUrl = "https://stubstationkiosk.com/kiosk.html"; 
+
 
             const squareIntent = 
                 `intent:#Intent;action=com.squareup.pos.action.CHARGE;package=com.squareup;` +
