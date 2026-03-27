@@ -1,7 +1,7 @@
 {
   "name": "StubStation Kiosk",
   "short_name": "StubStation",
-  "start_url": "/Stubstation/",
+  "start_url": "./kiosk.html",
   "display": "fullscreen",
   "background_color": "#000000",
   "theme_color": "#000000",
@@ -23,4 +23,3 @@
     }
   ]
 }
-
