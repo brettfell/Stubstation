@@ -25,15 +25,19 @@
         header {
             padding: 50px 20px 20px;
             width: 100%;
-            display: flex;
-            justify-content: center;
         }
-        .header-logo {
-            max-width: 350px; 
-            width: 90%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
+        h1 {
+            color: orange;
+            font-size: 3.5rem;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        h2 {
+            font-weight: 300;
+            color: #ccc;
+            font-size: 1.5rem;
+            margin: 0;
         }
         .container {
             width: 100%;
@@ -100,22 +104,35 @@
         a:hover {
             text-decoration: underline;
         }
+        .footer-logo {
+            max-width: 250px; 
+            width: 80%;
+            height: auto;
+            margin: 40px auto 20px;
+            display: block;
+        }
         /* MOBILE RESPONSIVE FIXES */
         @media (max-width: 600px) {
+            h1 {
+                font-size: 2.2rem; 
+            }
+            h2 {
+                font-size: 1.2rem;
+            }
             .contact-section {
                 padding: 20px; 
             }
-            .header-logo {
-                max-width: 250px; /* Scales down perfectly on phones */
+            .footer-logo {
+                max-width: 200px;
             }
         }
-
     </style>
 </head>
 <body>
 
     <header>
-        <img src="logo.png" alt="StubStation Kiosk" class="header-logo">
+        <h1>StubStation</h1>
+        <h2>The Original Concert Souvenir!</h2>
     </header>
 
     <div class="container">
@@ -142,6 +159,8 @@
                 <p><a href="mailto:customerservice@stubstationkiosk.com">customerservice@stubstationkiosk.com</a></p>
             </div>
         </div>
+
+        <img src="logo.png" alt="StubStation Logo" class="footer-logo">
     </div>
 
 </body>
